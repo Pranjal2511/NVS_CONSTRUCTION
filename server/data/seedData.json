@@ -1,0 +1,378 @@
+{
+  "PROJECTS_DATA": [
+    {
+      "id": "modernist-duplex-residence",
+      "title": "Modernist Duplex Residence",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg",
+      "beforeImageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32 (1).jpeg",
+      "location": "Lucknow, India",
+      "year": "2026",
+      "description": "A premium luxury duplex villa engineered with structural precision. Features seismic-isolation foundation and custom Vastu planning."
+    },
+    {
+      "id": "nvs-corporate-pavilion",
+      "title": "NVS Corporate Pavilion",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31.jpeg",
+      "beforeImageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (1).jpeg",
+      "location": "Delhi NCR, India",
+      "year": "2025",
+      "description": "A high-rise commercial corporate block featuring double-glazed high-acoustic glass walls, architectural aluminum louvers, and open layouts."
+    },
+    {
+      "id": "bespoke-living-lounge",
+      "title": "Bespoke Living Lounge",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.40.jpeg",
+      "location": "Prayagraj, India",
+      "year": "2026",
+      "description": "Ultra-premium living lounge interior integrating rare stone slabs, bookmatched marble detailing, handcrafted acoustic wooden panels, and dynamic lighting fields."
+    },
+    {
+      "id": "contemporary-urban-villa",
+      "title": "Contemporary Urban Villa",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30 (1).jpeg",
+      "location": "Varanasi, India",
+      "year": "2026",
+      "description": "Double-height voids, structural concrete frames, passive solar ventilation layouts, and a Vastu-compliant layout designed for premium living."
+    },
+    {
+      "id": "premium-kitchen-studio",
+      "title": "Premium Kitchen Studio",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.39.jpeg",
+      "location": "Lucknow, India",
+      "year": "2025",
+      "description": "A minimalist modular kitchen integrating concealed ducts, handleless cabinet tracks, high-efficiency hoods, and premium quartz surfaces."
+    },
+    {
+      "id": "structural-glass-facade",
+      "title": "Structural Glass Facade",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.42.jpeg",
+      "location": "Kanpur, India",
+      "year": "2026",
+      "description": "An exploration of matte black vertical architectural louvers intersecting with high-transparency low-iron glass sheets for solar control."
+    },
+    {
+      "id": "modern-commercial-plaza",
+      "title": "Modern Commercial Plaza",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (3).jpeg",
+      "location": "Noida, India",
+      "year": "2026",
+      "description": "High-load multi-story commercial plaza utilizing composite steel-concrete moment frames to support massive open-span retail bays."
+    },
+    {
+      "id": "bespoke-bedroom-suite",
+      "title": "Bespoke Bedroom Suite",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32 (2).jpeg",
+      "location": "Delhi, India",
+      "year": "2026",
+      "description": "Luxury master suite highlighting wood-veneered partitions, custom leather-tufted backboards, and integrated architectural light files."
+    }
+  ],
+  "GALLERY_DATA": [
+    {
+      "id": "gal-1",
+      "title": "Duplex Facade Construction",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg",
+      "desc": "Twilight view of active duplex structural layout showing structural columns and concrete slab casting.",
+      "alt": "NVS Buildcon residential duplex facade construction work"
+    },
+    {
+      "id": "gal-2",
+      "title": "Villa Elevation Finish",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30 (1).jpeg",
+      "desc": "Completed front elevation showcase, highlighting the clean white geometry, dynamic projections, and accent amber lights.",
+      "alt": "Modern residential villa completed by NVS Buildcon"
+    },
+    {
+      "id": "gal-3",
+      "title": "Corporate Building Entrance",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31.jpeg",
+      "desc": "Commanding corporate block arrival lobby layout with floor-to-ceiling glass and structural steel columns.",
+      "alt": "NVS Buildcon commercial corporate office entrance design"
+    },
+    {
+      "id": "gal-4",
+      "title": "Structural Steel Frame",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (1).jpeg",
+      "desc": "On-site capture of structural moment-frame steel columns and high-load primary beam arrangements.",
+      "alt": "Commercial steel frame construction progress"
+    },
+    {
+      "id": "gal-5",
+      "title": "Foundation Reinforcement Grid",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (2).jpeg",
+      "desc": "Precision reinforcement bar tying and mesh detailing check for high-strength footing foundation.",
+      "alt": "Foundation rebar grid inspection"
+    },
+    {
+      "id": "gal-6",
+      "title": "Retail Plaza Facade",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (3).jpeg",
+      "desc": "Structural front view of a retail complex showing slab geometry, cantilever details, and column locations.",
+      "alt": "NVS Buildcon multi-story commercial plaza design"
+    },
+    {
+      "id": "gal-7",
+      "title": "Louver System Detail",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32.jpeg",
+      "desc": "Bespoke vertical matte black aluminum louvers providing passive solar shading and visual privacy for glass windows.",
+      "alt": "Exterior architectural louvers detail"
+    },
+    {
+      "id": "gal-8",
+      "title": "Subterranean Foundation Pouring",
+      "category": "Residential",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32 (1).jpeg",
+      "desc": "Active concrete pour and leveling for seismic-resistant raft foundation sequence.",
+      "alt": "Concrete foundation casting process"
+    },
+    {
+      "id": "gal-9",
+      "title": "Luxury Master Bedroom",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32 (2).jpeg",
+      "desc": "Bespoke bedroom interior with high-end wood paneling, linear LED lighting slots, and integrated bed styling.",
+      "alt": "Luxury bedroom interior designed by NVS Buildcon"
+    },
+    {
+      "id": "gal-10",
+      "title": "Kids Bed Lounge",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.33.jpeg",
+      "desc": "Modern children bedroom layout with clean custom laminate shelving, study desk, and playful design geometry.",
+      "alt": "Kids bedroom interior design"
+    },
+    {
+      "id": "gal-11",
+      "title": "Modern Dining Kitchen",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.39.jpeg",
+      "desc": "Minimalist modular kitchen dining suite featuring handleless cabinets and integrated cooktop appliances.",
+      "alt": "Modern kitchen dining layout"
+    },
+    {
+      "id": "gal-12",
+      "title": "Grand Living Hall",
+      "category": "Interior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.40.jpeg",
+      "desc": "Open living and lounge hall design showing tray ceilings, cove lights, and custom bookmatched marble partitions.",
+      "alt": "Living hall interior layout design"
+    },
+    {
+      "id": "gal-13",
+      "title": "Matte Black Cladding Facade",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.41.jpeg",
+      "desc": "Modern exterior wall styling combining textured dark metal panels with architectural grey render.",
+      "alt": "Exterior metal cladding panel detail"
+    },
+    {
+      "id": "gal-14",
+      "title": "Frameless Structural Glazing",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.42.jpeg",
+      "desc": "High-transparency glass facade installation mapping column-free corners and slim joint spacing.",
+      "alt": "Architectural structural glazing facade"
+    },
+    {
+      "id": "gal-15",
+      "title": "Exposed Raw Concrete Block",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.42 (1).jpeg",
+      "desc": "Board-formed exposed concrete wall texture displaying modern raw industrial brutalist aesthetics.",
+      "alt": "Exposed concrete wall detail"
+    },
+    {
+      "id": "gal-16",
+      "title": "Commercial Office Bay",
+      "category": "Commercial",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.46.jpeg",
+      "desc": "Open floor workspace grid under structural progress showing columns and slab ceilings.",
+      "alt": "Commercial office building floor construction"
+    },
+    {
+      "id": "gal-17",
+      "title": "Structural Column Detailing",
+      "category": "Exterior",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.46 (1).jpeg",
+      "desc": "High-load bearing square columns aligning structure load paths to subterranean piles.",
+      "alt": "Support columns construction progress"
+    }
+  ],
+  "BLUEPRINTS_DATA": [
+    {
+      "id": "standard-2d-floor-plan-7",
+      "title": "Standard 2D Floor Plan (Layout 7)",
+      "category": "House Plans",
+      "pdfUrl": "/pdfs/7..pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31.jpeg",
+      "description": "Standard 2D floor planning layout specifying spatial geometry, doors, windows, and partition walls.",
+      "specs": {
+        "foundation": "2D Architectural Layout Drafting",
+        "superstructure": "Standard Brick Masonry planning",
+        "flooring": "General space allocation schematics"
+      }
+    },
+    {
+      "id": "boys-bedroom-layout",
+      "title": "Boy's Bedroom Layout Plan",
+      "category": "Interior",
+      "pdfUrl": "/pdfs/BOY BED ROOM.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.32 (2).jpeg",
+      "description": "Millimeter-precision interior blueprint mapping furniture placement, lighting layout, and electrical sockets.",
+      "specs": {
+        "foundation": "Electrical & Cabinet detailed drawings",
+        "superstructure": "Premium timber and lighting layouts",
+        "flooring": "Laminated wooden plank allocation plan"
+      }
+    },
+    {
+      "id": "delhi-project-structural-layout",
+      "title": "Delhi Project Structural Layout",
+      "category": "Residential",
+      "pdfUrl": "/pdfs/Delhi-bak.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (1).jpeg",
+      "description": "Engineering layout package specifying columns, beams, slab thickness, and reinforcement calculations.",
+      "specs": {
+        "foundation": "Seismic isolating pile foundation drawing",
+        "superstructure": "High-strength structural concrete layout",
+        "flooring": "Heavy load structural slab planning"
+      }
+    },
+    {
+      "id": "residential-house-plan-77",
+      "title": "Residential House Plan (Layout 77)",
+      "category": "House Plans",
+      "pdfUrl": "/pdfs/DOC-20260527-WA0077..pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (2).jpeg",
+      "description": "Vastu-compliant residential zoning map detailing room layouts, staircase direction, and furniture configurations.",
+      "specs": {
+        "foundation": "Standard spread footing planning map",
+        "superstructure": "Vastu-aligned wall alignments",
+        "flooring": "Vitrifed tiles structural mappings"
+      }
+    },
+    {
+      "id": "girls-bedroom-layout",
+      "title": "Girl's Bedroom Layout Plan",
+      "category": "Interior",
+      "pdfUrl": "/pdfs/GIRL BED ROOM (2).pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.33.jpeg",
+      "description": "Detailed interior blueprint drawing showing modern pastel wardrobes, study lounge, and concealed lights layout.",
+      "specs": {
+        "foundation": "Detailed electrical wiring layout",
+        "superstructure": "Ceiling layout and cabinet profile plans",
+        "flooring": "Textured tile flooring layout schematic"
+      }
+    },
+    {
+      "id": "kitchen-dining-floor-plan",
+      "title": "Kitchen & Dining Floor Plan",
+      "category": "Interior",
+      "pdfUrl": "/pdfs/KITCHEN DINING.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.39.jpeg",
+      "description": "Millimeter-precision modular kitchen schematic specifying plumbing points, gas ducts, and cabinet dimensions.",
+      "specs": {
+        "foundation": "MEP (Mechanical, Electrical, Plumbing) mapping",
+        "superstructure": "Modular cabinetry and appliance spacing",
+        "flooring": "Anti-skid quartz tile spacing plan"
+      }
+    },
+    {
+      "id": "living-hall-architectural-drawing",
+      "title": "Living Hall Architectural Drawing",
+      "category": "Interior",
+      "pdfUrl": "/pdfs/LIVING HALL.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.40.jpeg",
+      "description": "Premium living space layout showing detailed wall panelling drawings, custom TV console layout, and ceiling profile.",
+      "specs": {
+        "foundation": "Millimeter-precision framing drawings",
+        "superstructure": "Ceiling height and lighting matrix layout",
+        "flooring": "Bookmatched Italian marble pattern plan"
+      }
+    },
+    {
+      "id": "mr-vikram-ji-epd-drawing",
+      "title": "Mr. Vikram Ji EPD Structural Drawing",
+      "category": "Commercial",
+      "pdfUrl": "/pdfs/Mr Vikram ji .epd drawing .pdf 20-01-2026.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg",
+      "description": "Complete engineering package (Electrical, Plumbing, Drainage) layout drawings checked for compliance.",
+      "specs": {
+        "foundation": "Drainage and sewage layout schematics",
+        "superstructure": "MEP conduits layout blueprint",
+        "flooring": "Concealed services slab routing map"
+      }
+    },
+    {
+      "id": "mr-divyaraj-singh-epd-drawing",
+      "title": "Mr. Divyaraj Singh EPD Structural Drawing",
+      "category": "Commercial",
+      "pdfUrl": "/pdfs/mr.divyaraj singh epd drawing pdf 21-11-2025.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.30 (1).jpeg",
+      "description": "RCC detailing and beam reinforcement layout drawings engineered for high load tolerances.",
+      "specs": {
+        "foundation": "Raft foundation concrete reinforcement rebar plan",
+        "superstructure": "RCC column and beam steel detailing layout",
+        "flooring": "Slab reinforcement steel wire schematic"
+      }
+    },
+    {
+      "id": "nvs-buildcon-price-list",
+      "title": "NVS Buildcon Services & Price List",
+      "category": "House Plans",
+      "pdfUrl": "/pdfs/NVS BUILDCON  Architectural & Design Services Price List.pdf",
+      "imageUrl": "/images/WhatsApp Image 2026-06-29 at 13.04.31 (3).jpeg",
+      "description": "Detailed service pricing matrix for 2D planning, 3D elevation, structural design, MEP drawings, and complete turnkey packages.",
+      "specs": {
+        "foundation": "Design packages starting from ₹3/sq.ft",
+        "superstructure": "Turnkey architectural layouts ₹15/sq.ft onwards",
+        "flooring": "Complete MEP packages ₹3/sq.ft"
+      }
+    }
+  ],
+  "TESTIMONIALS_DATA": [
+    {
+      "id": "test-1",
+      "name": "Vikram Singh",
+      "role": "Corporate Developer, Delhi NCR",
+      "rating": 5,
+      "review": "NVS Buildcon delivered our commercial corporate block with absolute precision. Their engineering blueprints, structural calculations, and MEP documentation were flawless. The double-glazed acoustic facade is world-class."
+    },
+    {
+      "id": "test-2",
+      "name": "Divyaraj Singh",
+      "role": "Villa Owner, Varanasi",
+      "rating": 5,
+      "review": "The modernist duplex they constructed has incredible double-height voids and feels extremely premium. High-quality Vastu implementation combined with raw board-formed concrete details. Truly a masterpiece."
+    },
+    {
+      "id": "test-3",
+      "name": "Ananya Sharma",
+      "role": "Luxury Homeowner, Lucknow",
+      "rating": 5,
+      "review": "From the initial 3D elevation renders to the final turnkey handover, NVS Buildcon surpassed all our expectations. Their interior architecture division curated rare bookmatched marbles that make our lounge spectacular."
+    },
+    {
+      "id": "test-4",
+      "name": "Rajesh Malhotra",
+      "role": "Managing Director, Malhotra Retail",
+      "rating": 5,
+      "review": "Our multi-story commercial plaza in Noida required massive open-span retail bays. NVS Buildcon engineered high-strength composite moments frames that eliminated central columns entirely. Remarkable civil engineering."
+    }
+  ]
+}

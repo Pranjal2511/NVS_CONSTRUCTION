@@ -1,0 +1,26 @@
+import { Router } from 'express';
+import * as authController from '../controllers/authController.js';
+import { validate } from '../middleware/validate.js';
+import { authenticate } from '../middleware/auth.js';
+import { authLimiter, strictAuthLimiter } from '../middleware/rateLimiter.js';
+import {
+  registerValidator,
+  loginValidator,
+  forgotPasswordValidator,
+  resetPasswordValidator,
+  updateProfileValidator,
+} from '../validators/authValidators.js';
+
+const router = Router();
+
+router.post('/register', authLimiter, registerValidator, validate, authController.register);
+router.post('/login', authLimiter, loginValidator, validate, authController.login);
+router.post('/admin-login', authLimiter, loginValidator, validate, authController.adminLogin);
+router.post('/refresh', authController.refresh);
+router.post('/logout', authenticate, authController.logout);
+router.post('/forgot-password', strictAuthLimiter, forgotPasswordValidator, validate, authController.forgotPasswordHandler);
+router.post('/reset-password', strictAuthLimiter, resetPasswordValidator, validate, authController.resetPasswordHandler);
+router.get('/profile', authenticate, authController.getProfile);
+router.put('/profile', authenticate, updateProfileValidator, validate, authController.updateProfile);
+
+export default router;

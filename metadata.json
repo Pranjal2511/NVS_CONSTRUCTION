@@ -1,0 +1,6 @@
+{
+  "name": "NVS Buildcon Portfolio",
+  "description": "A high-end architectural showcase and interactive design explorer for NVS Buildcon.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

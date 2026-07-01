@@ -1,0 +1,472 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0a0f18;
+  --color-surface: #0a0f18;
+  --color-surface-container: #161d2a;
+  --color-surface-high: #1e2535;
+  --color-surface-low: #111827;
+  --color-surface-lowest: #050a12;
+  --color-surface-highest: #28303f;
+  --color-on-surface: #e8eaf0;
+  --color-on-surface-variant: #b0b4c4;
+  --color-primary: #c8ccde;
+  --color-on-primary: #1a2030;
+}
+
+:root.light {
+  --color-bg: #f9fafb;
+  --color-surface: #ffffff;
+  --color-surface-container: #f3f4f6;
+  --color-surface-high: #e5e7eb;
+  --color-surface-low: #f9fafb;
+  --color-surface-lowest: #f3f4f6;
+  --color-surface-highest: #d1d5db;
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #4b5563;
+  --color-primary: #111827;
+  --color-on-primary: #ffffff;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  
+  --color-brand-bg: var(--color-bg);
+  --color-brand-surface: var(--color-surface);
+  --color-brand-surface-container: var(--color-surface-container);
+  --color-brand-surface-high: var(--color-surface-high);
+  --color-brand-surface-low: var(--color-surface-low);
+  --color-brand-surface-lowest: var(--color-surface-lowest);
+  --color-brand-surface-highest: var(--color-surface-highest);
+  --color-brand-on-surface: var(--color-on-surface);
+  --color-brand-on-surface-variant: var(--color-on-surface-variant);
+  --color-brand-primary: var(--color-primary);
+  --color-brand-on-primary: var(--color-on-primary);
+  /* Soft gold accent */
+  --color-brand-secondary: #c9a84c;
+  --color-brand-secondary-light: #e4c87c;
+  --color-brand-secondary-muted: #8a6f2e;
+  --color-brand-gold: #c9a84c;
+}
+
+/* =====================================================
+   BASE RESET & BODY
+   ===================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: auto; /* Lenis handles smooth scroll */
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* =====================================================
+   CUSTOM CURSOR GLOW
+   ===================================================== */
+.cursor-dot {
+  position: fixed;
+  top: 0; left: 0;
+  width: 8px; height: 8px;
+  background: #c9a84c;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s, height 0.2s, opacity 0.2s;
+  mix-blend-mode: screen;
+}
+
+.cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(201, 168, 76, 0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+}
+
+.cursor-dot.hovering { width: 12px; height: 12px; background: #e4c87c; }
+.cursor-ring.hovering { width: 56px; height: 56px; border-color: rgba(201, 168, 76, 0.8); }
+
+/* =====================================================
+   TYPOGRAPHY
+   ===================================================== */
+.font-display { font-family: var(--font-display); }
+.font-serif   { font-family: var(--font-serif); }
+
+.text-gold { color: #c9a84c; }
+.text-gold-light { color: #e4c87c; }
+
+/* Oversized editorial headings */
+.heading-editorial {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.heading-serif-large {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+/* =====================================================
+   SPLIT TEXT ANIMATION
+   ===================================================== */
+.split-word {
+  display: inline-block;
+  overflow: hidden;
+}
+
+.split-word-inner {
+  display: inline-block;
+  transform: translateY(105%);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.split-word.revealed .split-word-inner {
+  transform: translateY(0);
+}
+
+/* =====================================================
+   SCROLL INDICATOR
+   ===================================================== */
+.scroll-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.6;
+}
+
+.scroll-indicator-line {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, #c9a84c, transparent);
+  animation: scrollLineAnim 2s ease-in-out infinite;
+}
+
+@keyframes scrollLineAnim {
+  0%, 100% { transform: scaleY(0); transform-origin: top; opacity: 1; }
+  50% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+  100% { transform: scaleY(1); transform-origin: bottom; opacity: 0; }
+}
+
+/* =====================================================
+   IMAGE REVEAL ANIMATION
+   ===================================================== */
+.img-reveal-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.img-reveal-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #0a0f18;
+  transform: scaleX(1);
+  transform-origin: left;
+  transition: transform 0.9s cubic-bezier(0.77, 0, 0.18, 1);
+}
+
+.img-reveal-wrapper.revealed::after {
+  transform: scaleX(0);
+  transform-origin: right;
+}
+
+/* =====================================================
+   BLUR REVEAL
+   ===================================================== */
+.blur-reveal {
+  opacity: 0;
+  filter: blur(20px);
+  transform: translateY(24px);
+  transition: opacity 0.8s ease, filter 0.8s ease, transform 0.8s ease;
+}
+
+.blur-reveal.revealed {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+}
+
+/* =====================================================
+   MAGNETIC BUTTON BASE
+   ===================================================== */
+.btn-magnetic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* =====================================================
+   PAGE TRANSITION
+   ===================================================== */
+.page-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0a0f18;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* =====================================================
+   GLASS PANEL
+   ===================================================== */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-gold {
+  background: rgba(201, 168, 76, 0.06);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+/* =====================================================
+   GOLD GRADIENT LINE
+   ===================================================== */
+.gold-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c9a84c, transparent);
+}
+
+.gold-line-v {
+  width: 1px;
+  background: linear-gradient(180deg, transparent, #c9a84c, transparent);
+}
+
+/* =====================================================
+   COUNTER ANIMATION
+   ===================================================== */
+.counter-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* =====================================================
+   BLUEPRINT BACKGROUND
+   ===================================================== */
+.blueprint-bg {
+  background-color: #06101e;
+  background-image:
+    linear-gradient(rgba(201, 168, 76, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 168, 76, 0.07) 1px, transparent 1px),
+    linear-gradient(rgba(201, 168, 76, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 168, 76, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+}
+
+/* =====================================================
+   BEFORE/AFTER SLIDER
+   ===================================================== */
+.before-after-container {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.before-after-handle {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 3px;
+  background: #c9a84c;
+  cursor: ew-resize;
+  z-index: 10;
+}
+
+/* =====================================================
+   MASONRY GRID
+   ===================================================== */
+.masonry-grid {
+  column-count: 3;
+  column-gap: 16px;
+}
+
+.masonry-grid-item {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1024px) {
+  .masonry-grid { column-count: 2; }
+}
+
+@media (max-width: 640px) {
+  .masonry-grid { column-count: 1; }
+}
+
+/* =====================================================
+   WIZARD STEPS
+   ===================================================== */
+.wizard-step {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.wizard-step.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: all;
+  position: relative;
+}
+
+.wizard-step.exit {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+/* =====================================================
+   SCROLLBAR
+   ===================================================== */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0a0f18; }
+::-webkit-scrollbar-thumb { background: #c9a84c40; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #c9a84c80; }
+
+/* =====================================================
+   MOBILE BOTTOM NAV
+   ===================================================== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(10, 15, 24, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(201, 168, 76, 0.15);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* =====================================================
+   FLOATING ELEMENTS
+   ===================================================== */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes floatYSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+.float-slow { animation: floatYSlow 6s ease-in-out infinite; }
+.float-fast { animation: floatY 4s ease-in-out infinite; }
+
+/* =====================================================
+   ANIMATE IN UTILITIES
+   ===================================================== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-up { animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-in    { animation: fadeIn 0.5s ease forwards; }
+.animate-scale-in   { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Stagger delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
+.delay-800 { animation-delay: 0.8s; }
+
+/* =====================================================
+   GOLD BUTTON
+   ===================================================== */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: #c9a84c;
+  color: #0a0f18;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: none;
+  cursor: none;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.btn-gold:hover {
+  background: #e4c87c;
+  transform: translateY(-2px);
+}
+
+.btn-outline-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 31px;
+  background: transparent;
+  color: #c9a84c;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1.5px solid #c9a84c;
+  cursor: none;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-outline-gold:hover {
+  background: #c9a84c;
+  color: #0a0f18;
+  transform: translateY(-2px);
+}
+
+/* =====================================================
+   SECTION SPACING
+   ===================================================== */
+.section-padding { padding: 120px 0; }
+.section-padding-sm { padding: 80px 0; }
+
+@media (max-width: 768px) {
+  .section-padding { padding: 80px 0; }
+  .section-padding-sm { padding: 60px 0; }
+}
