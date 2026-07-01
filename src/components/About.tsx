@@ -11,9 +11,9 @@ const services = [
 ];
 
 const stats = [
-  { value: '120+', label: 'Projects', desc: 'Residential and commercial work.' },
+  { value: '60+', label: 'Projects', desc: 'Residential and commercial work.' },
   { value: '12', label: 'Cities', desc: 'Active across major North Indian markets.' },
-  { value: '15+', label: 'Years', desc: 'Planning, design, and site experience.' },
+  { value: '1.5', label: 'Years', desc: 'Planning, design, and site experience.' },
   { value: '100%', label: 'Support', desc: 'Guidance from drawing to delivery.' },
 ];
 

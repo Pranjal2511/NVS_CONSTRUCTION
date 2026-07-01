@@ -25,12 +25,12 @@ function useCountUp(target: number, duration: number = 2000, start: boolean = fa
   return count;
 }
 
-const words = ['Build Your', 'Dream Home', 'With Confidence'];
+const words = ['Designing Homes', 'That Feel', 'Built Around You'];
 const serviceHighlights = [
-  'Residential Projects',
-  'Commercial Projects',
-  '2D & 3D Design',
-  'Construction Support',
+  'House Plans',
+  '3D Elevations',
+  'Structural Drawings',
+  'Site Guidance',
 ];
 
 export default function Hero({ onInquire }: HeroProps) {
@@ -38,9 +38,8 @@ export default function Hero({ onInquire }: HeroProps) {
   const [countersStart, setCountersStart] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const projects = useCountUp(120, 2200, countersStart);
+  const projects = useCountUp(60, 2200, countersStart);
   const cities = useCountUp(12, 2000, countersStart);
-  const years = useCountUp(15, 1800, countersStart);
 
   useEffect(() => {
     const t1 = setTimeout(() => setRevealed(true), 200);
@@ -103,13 +102,12 @@ export default function Hero({ onInquire }: HeroProps) {
 
         <h1 className="heading-editorial text-[clamp(3rem,8vw,7.25rem)] text-white leading-[0.97] mb-6 max-w-5xl">
           {words.map((word, wi) => (
-            <span key={word} className="split-word block" style={{ transitionDelay: `${wi * 120 + 150}ms` }}>
+            <span key={word} className={`split-word block ${revealed ? 'revealed' : ''}`}>
               <span
-                className={`split-word-inner ${
-                  revealed ? 'translate-y-0' : 'translate-y-full'
-                } transition-transform duration-[900ms] cubic-bezier(0.16,1,0.3,1) inline-block`}
+                className="split-word-inner"
+                style={{ transitionDelay: `${wi * 120 + 150}ms` }}
               >
-                {word === 'With Confidence' ? <span className="text-brand-gold">{word}</span> : word}
+                {word === 'Built Around You' ? <span className="text-brand-gold">{word}</span> : word}
               </span>
             </span>
           ))}
@@ -119,7 +117,7 @@ export default function Hero({ onInquire }: HeroProps) {
           className="font-serif text-white/72 text-xl md:text-3xl font-light max-w-3xl mb-8 opacity-0 leading-snug"
           style={{ animation: revealed ? 'fadeInUp 0.7s ease 0.55s forwards' : 'none' }}
         >
-          Professional house planning, architectural design, and construction services.
+          Clear house plans, practical drawings, and site-ready design support from first sketch to execution.
         </p>
 
         <div
@@ -155,7 +153,7 @@ export default function Hero({ onInquire }: HeroProps) {
           {[
             { label: 'Projects Delivered', value: projects, suffix: '+' },
             { label: 'Cities Served', value: cities, suffix: '' },
-            { label: 'Years Experience', value: years, suffix: '+' },
+            { label: 'Years Experience', value: '1.5', suffix: '' },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col">
               <span className="counter-number font-display text-3xl md:text-5xl font-bold text-white leading-none">

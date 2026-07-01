@@ -8,7 +8,9 @@ const connectDB = async () => {
   logger.info(`Connecting to MongoDB at: ${maskedUri}`);
 
   try {
-    await mongoose.connect(env.MONGODB_URI);
+    await mongoose.connect(env.MONGODB_URI, {
+      serverSelectionTimeoutMS: env.NODE_ENV === 'production' ? 30000 : 3000,
+    });
     logger.info('MongoDB connected successfully');
     await seedDatabase();
   } catch (error) {

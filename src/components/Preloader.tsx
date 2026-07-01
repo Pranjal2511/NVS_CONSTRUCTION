@@ -51,7 +51,7 @@ export default function Preloader() {
 
             {/* Tagline */}
             <p className="font-serif text-[10px] md:text-xs text-brand-on-surface-variant/60 tracking-[0.2em] uppercase mb-8">
-              Engineering Luxury • Est. 2009
+              Planning Homes - Est. 2025
             </p>
 
             {/* Luxury progress bar */}

@@ -52,7 +52,10 @@ const setupFrontend = async () => {
 };
 
 const startServer = async () => {
-  await connectDB();
+  if (env.NODE_ENV === 'production') {
+    await connectDB();
+  }
+
   await setupFrontend();
 
   app.use(notFound);
@@ -61,6 +64,12 @@ const startServer = async () => {
   app.listen(env.PORT, () => {
     logger.info(`NVS Buildcon server running on port ${env.PORT}`);
   });
+
+  if (env.NODE_ENV !== 'production') {
+    connectDB().catch((err) => {
+      logger.warn('Database startup check failed in development', { message: err.message });
+    });
+  }
 };
 
 startServer().catch((err) => {
