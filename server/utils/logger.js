@@ -15,7 +15,7 @@ const redact = (obj) => {
 
 const logger = {
   info: (message, meta = {}) => {
-    console.log(`[INFO] ${message}`, Object.keys(meta).length ? redact(meta) : '');
+    console.info(`[INFO] ${message}`, Object.keys(meta).length ? redact(meta) : '');
   },
   warn: (message, meta = {}) => {
     console.warn(`[WARN] ${message}`, Object.keys(meta).length ? redact(meta) : '');
@@ -24,7 +24,7 @@ const logger = {
     console.error(`[ERROR] ${message}`, Object.keys(meta).length ? redact(meta) : '');
   },
   audit: (action, meta = {}) => {
-    console.log(`[AUDIT] ${action}`, redact(meta));
+    console.info(`[AUDIT] ${action}`, redact(meta));
   },
 };
 

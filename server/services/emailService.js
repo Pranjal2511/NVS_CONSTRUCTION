@@ -18,6 +18,10 @@ const getTransporter = () => {
   return transporter;
 };
 
+export const isEmailTransportConfigured = () => {
+  return Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
+};
+
 const getAdminEmail = async () => {
   const settings = await SiteSettings.findOne();
   return settings?.emailForNotifications || 'admin@nvsbuildcon.com';
@@ -26,7 +30,10 @@ const getAdminEmail = async () => {
 export const sendEmail = async ({ to, subject, text, html }) => {
   const transport = getTransporter();
   if (!transport) {
-    logger.info('Simulated email', { to, subject });
+    if (env.IS_PRODUCTION) {
+      throw new Error('SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS.');
+    }
+    logger.info('Simulated email because SMTP is not configured', { to, subject, text });
     return true;
   }
 
@@ -65,6 +72,15 @@ export const sendPasswordResetEmail = async (user, resetLink) => {
     subject: 'Password Reset - NVS Buildcon',
     text: `Hello ${user.name},\n\nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\n\nThis link expires in 1 hour.\n\nIf you did not request this, please ignore this email.`,
     html: `<p>Hello ${user.name},</p><p>You requested a password reset. <a href="${resetLink}">Click here to reset your password</a>.</p><p>This link expires in 1 hour.</p>`,
+  });
+};
+
+export const sendLoginOtpEmail = async (user, otp) => {
+  await sendEmail({
+    to: user.email,
+    subject: 'Your NVS Buildcon login OTP',
+    text: `Hello ${user.name},\n\nYour NVS Buildcon login OTP is ${otp}. It expires in 5 minutes.\n\nIf you did not request this, please ignore this message.`,
+    html: `<p>Hello ${user.name},</p><p>Your NVS Buildcon login OTP is <strong>${otp}</strong>.</p><p>It expires in 5 minutes.</p>`,
   });
 };
 

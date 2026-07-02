@@ -1,21 +1,48 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# NVS Buildcon Portfolio
 
-# Run and deploy your AI Studio app
+React 19 + Vite frontend with a Node/Express + MongoDB backend for the NVS Buildcon construction and architecture site.
 
-This contains everything you need to run your app locally.
+## Deployment Notes
 
-View your app in AI Studio: https://ai.studio/apps/5e2cf15a-5ff5-4477-b600-dab7b7d58f11
+The frontend is designed to deploy as a static Vite build on Netlify. The Express backend must be deployed separately on a Node-capable host such as Railway, Render, Fly.io, or a VPS, with MongoDB Atlas or another reachable MongoDB instance.
 
-## Run Locally
+No verified live backend host is committed in this repository. The previous `render.yaml` file was removed because the repository did not prove Render is the real deployment target. When the backend URL is known, set it in Netlify as:
 
-**Prerequisites:**  Node.js
+```env
+VITE_API_URL=https://your-live-backend.example.com
+```
 
+If the Express server serves both frontend and backend from the same origin, leave `VITE_API_URL` blank and requests will continue to use same-origin `/api/...` URLs.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-"# NVS_CONSTRUCTION" 
+Required backend production environment variables:
+
+```env
+IS_PRODUCTION=true
+CLIENT_URL=https://nvsbuildcon.com
+APP_URL=https://your-live-backend.example.com
+MONGODB_URI=mongodb+srv://...
+JWT_SECRET=<minimum 32 characters>
+JWT_REFRESH_SECRET=<minimum 32 characters>
+HCAPTCHA_SECRET=...
+HCAPTCHA_SITE_KEY=...
+```
+
+`JWT_SECRET` and `JWT_REFRESH_SECRET` are required in every environment and the server refuses to start if either is missing or shorter than 32 characters.
+
+## SEO/AEO
+
+The public static build prerenders these routes at build time:
+
+```text
+/
+/projects
+/house-plans
+/gallery
+/services
+/process
+/about
+/testimonials
+/contact
+```
+
+`public/sitemap.xml`, `public/robots.txt`, and `public/llms.txt` describe only the public routes and factual business information.

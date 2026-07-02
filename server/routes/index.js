@@ -14,10 +14,19 @@ import userRoutes from './userRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import searchRoutes from './searchRoutes.js';
 
+import env from '../config/env.js';
+
 const router = Router();
 
 router.get('/health', (_req, res) => {
   res.json({ success: true, message: 'NVS Buildcon API is running', timestamp: new Date().toISOString() });
+});
+
+router.get('/config', (_req, res) => {
+  res.json({
+    success: true,
+    hcaptchaSiteKey: env.HCAPTCHA_SITE_KEY || '10000000-ffff-ffff-ffff-ffffffffffff'
+  });
 });
 
 router.use('/auth', authRoutes);

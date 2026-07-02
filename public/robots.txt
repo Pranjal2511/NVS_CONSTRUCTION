@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Block private/auth routes from indexing
+Disallow: /login
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /enquiries
+Disallow: /settings
+
+Sitemap: https://nvsbuildcon.com/sitemap.xml

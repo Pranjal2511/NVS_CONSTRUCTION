@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, Sun, Moon, ChevronRight, User, ShieldCheck, LogIn, LogOut, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { ViewState } from '../types';
 import { AuthUser } from '../utils/auth';
 
@@ -57,12 +58,12 @@ export default function Navbar({
     localStorage.setItem('theme', next);
   };
 
-  const navLinks: { label: string; value: ViewState }[] = [
-    { label: 'Home',         value: 'home'         },
-    { label: 'Services',     value: 'services'     },
-    { label: 'Projects',     value: 'projects'     },
-    { label: 'Gallery',      value: 'gallery'      },
-    { label: 'Contact',      value: 'contact'      },
+  const navLinks: { label: string; value: ViewState; path: string }[] = [
+    { label: 'Home',         value: 'home',         path: '/' },
+    { label: 'Services',     value: 'services',     path: '/services' },
+    { label: 'Projects',     value: 'projects',     path: '/projects' },
+    { label: 'Gallery',      value: 'gallery',      path: '/gallery' },
+    { label: 'Contact',      value: 'contact',      path: '/contact' },
   ];
 
   const handleNav = (view: ViewState) => {
@@ -86,7 +87,8 @@ export default function Navbar({
       <div className="flex justify-between items-center px-6 md:px-12 h-[68px] w-full max-w-[1400px] mx-auto">
 
         {/* ── Logo ─────────────────────────────────────────────────── */}
-        <button
+        <Link
+          to="/"
           onClick={() => handleNav('home')}
           className="group flex items-center gap-3 focus:outline-none"
           aria-label="NVS Buildcon home"
@@ -104,15 +106,16 @@ export default function Navbar({
               Architecture & Construction
             </span>
           </div>
-        </button>
+        </Link>
 
         {/* ── Desktop Nav Links ─────────────────────────────────────── */}
         <div className="hidden xl:flex items-center h-full gap-1">
           {navLinks.map((link) => {
             const isActive = activeView === link.value;
             return (
-              <button
+              <Link
                 key={link.value}
+                to={link.path}
                 onClick={() => handleNav(link.value)}
                 className={`relative px-3 py-1.5 font-display text-[10px] font-bold tracking-[0.15em] uppercase rounded-md transition-all duration-200 ${
                   isActive
@@ -121,7 +124,7 @@ export default function Navbar({
                 }`}
               >
                 {link.label}
-              </button>
+              </Link>
             );
           })}
         </div>

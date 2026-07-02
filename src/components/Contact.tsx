@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Phone, MapPin, Send, CheckCircle, HelpCircle } from 'lucide-react';
+import HCaptchaWidget from './HCaptchaWidget';
+import { apiFetch } from '../utils/api';
 
 interface ContactProps {
   onInquire?: (projectName?: string) => void;
@@ -12,6 +14,7 @@ export default function Contact({ onInquire }: ContactProps) {
   const [phone, setPhone] = useState('');
   const [service, setService] = useState('Architectural Design');
   const [message, setMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export default function Contact({ onInquire }: ContactProps) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/enquiries', {
+      const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -34,12 +37,14 @@ export default function Contact({ onInquire }: ContactProps) {
           phone,
           email,
           service,
-          message
+          message,
+          'h-captcha-response': captchaToken
         })
       });
 
       if (!res.ok) {
-        throw new Error('Failed to submit message.');
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to submit message.');
       }
 
       setIsSubmitted(true);
@@ -239,6 +244,9 @@ export default function Contact({ onInquire }: ContactProps) {
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full bg-brand-surface-lowest text-brand-on-surface text-sm px-4 py-3 rounded-lg border border-white/10 focus:border-brand-secondary focus:outline-none transition-all placeholder:text-brand-on-surface/30 resize-none"
                 ></textarea>
+
+                {/* hCaptcha Widget */}
+                <HCaptchaWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
 
                 {/* Submit */}
                 <button

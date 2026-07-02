@@ -7,13 +7,35 @@ const passwordValidator = body('password')
   .withMessage('Password must be 8+ chars with upper, lower, number, and special character');
 
 export const registerValidator = [
-  body('name').trim().notEmpty().isLength({ max: 100 }).escape(),
+  body('name').optional().trim().isLength({ max: 100 }).escape(),
+  body('firstName').optional().trim().isLength({ max: 60 }).escape(),
+  body('lastName').optional().trim().isLength({ max: 60 }).escape(),
   emailValidator,
-  body('phone').optional().trim().isLength({ max: 20 }),
-  passwordValidator,
+  body('phone').trim().notEmpty().isLength({ max: 20 }),
+  body('profileImage').optional().trim().isLength({ max: 500 }),
+  body('password').optional().custom((value) => {
+    if (!value) return true;
+    if (value.length < 8) throw new Error('Password must be at least 8 characters');
+    return true;
+  }),
 ];
 
 export const loginValidator = [emailValidator, body('password').notEmpty()];
+
+export const otpRequestValidator = [
+  body('identifier')
+    .trim()
+    .notEmpty()
+    .isLength({ max: 120 })
+    .withMessage('Email or phone number is required'),
+  body('role').optional().isIn(['user', 'admin']),
+];
+
+export const otpVerifyValidator = [
+  body('identifier').trim().notEmpty().isLength({ max: 120 }),
+  body('otp').trim().isLength({ min: 6, max: 6 }).isNumeric(),
+  body('role').optional().isIn(['user', 'admin']),
+];
 
 export const forgotPasswordValidator = [emailValidator];
 

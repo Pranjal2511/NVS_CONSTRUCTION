@@ -1,11 +1,21 @@
 /* src/utils/auth.ts */
 
+import { apiFetch } from './api';
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   phone?: string;
   role: 'admin' | 'user';
+}
+
+export interface OtpChallenge {
+  otpRequired: true;
+  identifier: string;
+  channel: 'email' | 'phone';
+  expiresInSeconds: number;
+  devOtp?: string;
 }
 
 /**
@@ -28,16 +38,29 @@ export const isAuthenticated = (): boolean => !!getRole();
 
 export const isAdmin = (): boolean => getRole() === 'admin';
 
-// API wrappers
-export const loginUser = async (email: string, password: string): Promise<AuthUser> => {
-  const res = await fetch('/api/auth/login', {
+export const sendLoginOtp = async (identifier: string, role: 'admin' | 'user' = 'user'): Promise<OtpChallenge> => {
+  const res = await apiFetch('/api/auth/send-otp', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ identifier, role })
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Login failed');
+    throw new Error(errorData.message || 'Failed to send OTP');
+  }
+  const result = await res.json();
+  return result.data;
+};
+
+export const verifyLoginOtp = async (identifier: string, otp: string, role: 'admin' | 'user' = 'user'): Promise<AuthUser> => {
+  const res = await apiFetch('/api/auth/verify-otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identifier, otp, role })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'OTP verification failed');
   }
   const data = await res.json();
   if (data.user?.role) {
@@ -46,43 +69,33 @@ export const loginUser = async (email: string, password: string): Promise<AuthUs
   return data.user;
 };
 
-export const registerUser = async (name: string, email: string, phone: string, password: string): Promise<AuthUser> => {
-  const res = await fetch('/api/auth/register', {
+export const loginUser = async (identifier: string): Promise<OtpChallenge> => sendLoginOtp(identifier, 'user');
+
+export const registerUser = async (firstName: string, lastName: string, email: string, phone: string): Promise<OtpChallenge> => {
+  const res = await apiFetch('/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, phone, password })
+    body: JSON.stringify({
+      name: `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+      email,
+      phone
+    })
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.message || 'Registration failed');
   }
-  const data = await res.json();
-  if (data.user?.role) {
-    storeRole(data.user.role);
-  }
-  return data.user;
+  const result = await res.json();
+  return result.data;
 };
 
-export const loginAdmin = async (email: string, password: string): Promise<AuthUser> => {
-  const res = await fetch('/api/auth/admin-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Admin login failed');
-  }
-  const data = await res.json();
-  if (data.user?.role) {
-    storeRole(data.user.role);
-  }
-  return data.user;
-};
+export const loginAdmin = async (identifier: string): Promise<OtpChallenge> => sendLoginOtp(identifier, 'admin');
 
 export const fetchUserProfile = async (): Promise<AuthUser | null> => {
   try {
-    const res = await fetch('/api/auth/profile');
+    const res = await apiFetch('/api/auth/profile');
     if (!res.ok) {
       clearAuth();
       return null;
@@ -108,9 +121,9 @@ export const fetchUserProfile = async (): Promise<AuthUser | null> => {
 
 export const logout = async (): Promise<void> => {
   try {
-    await fetch('/api/auth/logout', { method: 'POST' });
-  } catch (err) {
-    console.error('Logout request failed', err);
+    await apiFetch('/api/auth/logout', { method: 'POST' });
+  } catch {
+    // Logout network failure is non-critical; local auth state is still cleared below
   } finally {
     clearAuth();
   }

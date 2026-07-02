@@ -6,6 +6,8 @@ import { hashPassword } from '../utils/password.js';
 import {
   registerUser,
   loginUser,
+  sendLoginOtp,
+  verifyLoginOtp,
   refreshAccessToken,
   logoutUser,
   forgotPassword,
@@ -16,21 +18,35 @@ import {
 import { logAudit } from '../services/auditService.js';
 
 export const register = asyncHandler(async (req, res) => {
-  const tokens = await registerUser(req.body);
-  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
-  res.status(201).json(formatAuthResponse(tokens));
+  const result = await registerUser(req.body);
+  res.status(201).json({
+    success: true,
+    message: 'Account created. Verify the OTP sent to continue.',
+    data: result,
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const tokens = await loginUser(req.body.email, req.body.password, 'user');
-  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
-  res.json(formatAuthResponse(tokens));
+  await loginUser();
 });
 
 export const adminLogin = asyncHandler(async (req, res) => {
-  const tokens = await loginUser(req.body.email, req.body.password, 'admin');
+  await loginUser();
+});
+
+export const sendOtp = asyncHandler(async (req, res) => {
+  const role = req.body.role === 'admin' ? 'admin' : 'user';
+  const result = await sendLoginOtp(req.body.identifier, role);
+  ApiResponse.success(res, 200, 'OTP sent successfully', result);
+});
+
+export const verifyOtp = asyncHandler(async (req, res) => {
+  const role = req.body.role === 'admin' ? 'admin' : 'user';
+  const tokens = await verifyLoginOtp(req.body.identifier, req.body.otp, role);
   setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
-  await logAudit({ userId: tokens.user._id, action: 'ADMIN_LOGIN', req });
+  if (role === 'admin') {
+    await logAudit({ userId: tokens.user._id, action: 'ADMIN_LOGIN', req });
+  }
   res.json(formatAuthResponse(tokens));
 });
 

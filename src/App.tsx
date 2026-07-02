@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { 
   User, Lock, Mail, Phone, Calendar, Clipboard, ShieldAlert, FileText, 
   CheckCircle, Clock, Trash2, UserPlus, Eye, LogOut, Settings, 
-  LayoutDashboard, ShieldCheck, Loader2, Sparkles, RefreshCw
+  LayoutDashboard, ShieldCheck, Loader2, Sparkles, RefreshCw, Upload, ImagePlus
 } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Concierge from './components/Concierge';
@@ -24,9 +26,58 @@ import DesignWizard from './components/DesignWizard';
 import Preloader from './components/Preloader';
 import { ViewState, Inquiry } from './types';
 import { AuthUser, fetchUserProfile, logout } from './utils/auth';
+import { apiFetch } from './utils/api';
+
+export const viewToPath: Record<ViewState, string> = {
+  home: '/',
+  services: '/services',
+  projects: '/projects',
+  'house-plans': '/house-plans',
+  gallery: '/gallery',
+  process: '/process',
+  about: '/about',
+  testimonials: '/testimonials',
+  contact: '/contact',
+  'design-wizard': '/design-wizard',
+  login: '/login',
+  'admin-login': '/admin/login',
+  dashboard: '/dashboard',
+  'admin-dashboard': '/admin/dashboard',
+  profile: '/profile',
+  enquiries: '/enquiries',
+  settings: '/settings'
+};
+
+export const pathToView = (path: string): ViewState => {
+  if (path === '/') return 'home';
+  if (path === '/services') return 'services';
+  if (path === '/projects') return 'projects';
+  if (path === '/house-plans') return 'house-plans';
+  if (path === '/gallery') return 'gallery';
+  if (path === '/process') return 'process';
+  if (path === '/about') return 'about';
+  if (path === '/testimonials') return 'testimonials';
+  if (path === '/contact') return 'contact';
+  if (path === '/design-wizard') return 'design-wizard';
+  if (path === '/login') return 'login';
+  if (path === '/admin/login') return 'admin-login';
+  if (path === '/dashboard') return 'dashboard';
+  if (path === '/admin/dashboard') return 'admin-dashboard';
+  if (path === '/profile') return 'profile';
+  if (path === '/enquiries') return 'enquiries';
+  if (path === '/settings') return 'settings';
+  return 'home';
+};
 
 export default function App() {
-  const [activeView, setActiveView] = useState<ViewState>('home');
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const activeView = pathToView(location.pathname);
+  const dashboardTab = activeView === 'profile' || activeView === 'enquiries' || activeView === 'settings'
+    ? activeView
+    : 'profile';
+
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   
@@ -36,7 +87,6 @@ export default function App() {
   const [inquiryService, setInquiryService] = useState<string | undefined>(undefined);
 
   // Dashboard Data State
-  const [dashboardTab, setDashboardTab] = useState<'profile' | 'enquiries' | 'settings'>('profile');
   const [enquiries, setEnquiries] = useState<Inquiry[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
@@ -49,76 +99,61 @@ export default function App() {
   const [profileLoading, setProfileLoading] = useState(false);
 
   // Admin Dashboard State
-  const [adminTab, setAdminTab] = useState<'stats' | 'users' | 'enquiries'>('stats');
+  const [adminTab, setAdminTab] = useState<'stats' | 'users' | 'enquiries' | 'content'>('stats');
   const [adminStats, setAdminStats] = useState<any>(null);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminEnquiries, setAdminEnquiries] = useState<any[]>([]);
+  const [contentTitle, setContentTitle] = useState('');
+  const [contentCategory, setContentCategory] = useState('Residential');
+  const [contentDesc, setContentDesc] = useState('');
+  const [contentImageUrl, setContentImageUrl] = useState('');
+  const [contentStatus, setContentStatus] = useState<string | null>(null);
+  const [contentLoading, setContentLoading] = useState(false);
 
-  // Synchronize path and activeView on mount
+  // Fetch profile on initial mount to check active session
   useEffect(() => {
-    const syncRoute = async () => {
-      const path = window.location.pathname;
-      let view: ViewState = 'home';
-      
-      if (path === '/login') view = 'login';
-      else if (path === '/admin/login') view = 'admin-login';
-      else if (path === '/dashboard') view = 'dashboard';
-      else if (path === '/admin/dashboard') view = 'admin-dashboard';
-      else if (path === '/profile') {
-        view = 'profile';
-        setDashboardTab('profile');
-      } else if (path === '/enquiries') {
-        view = 'enquiries';
-        setDashboardTab('enquiries');
-      } else if (path === '/settings') {
-        view = 'settings';
-        setDashboardTab('settings');
-      } else if (path === '/projects') view = 'projects';
-      else if (path === '/house-plans') view = 'house-plans';
-      else if (path === '/gallery') view = 'gallery';
-      else if (path === '/services') view = 'services';
-      else if (path === '/contact') view = 'contact';
-      else if (path === '/testimonials') view = 'testimonials';
-      else if (path === '/design-wizard') view = 'design-wizard';
-      else if (path === '/about') view = 'about';
-      else if (path === '/process') view = 'process';
+    const checkSession = async () => {
+      try {
+        const user = await fetchUserProfile();
+        setCurrentUser(user);
+      } catch {
+        // No session or network failure — handle gracefully
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+    checkSession();
+  }, []);
 
-      // Check current session
-      const user = await fetchUserProfile();
-      setCurrentUser(user);
-      setCheckingSession(false);
+  // Guard checks and redirects driven by URL changes
+  useEffect(() => {
+    if (checkingSession) return;
 
-      // Guard checks
-      if (user) {
-        if (user.role === 'admin') {
-          if (view === 'login' || view === 'admin-login') {
-            handleViewChange('admin-dashboard');
-            return;
-          }
-        } else {
-          if (view === 'admin-dashboard') {
-            handleViewChange('dashboard');
-            return;
-          }
-          if (view === 'login' || view === 'admin-login') {
-            handleViewChange('dashboard');
-            return;
-          }
+    const view = pathToView(location.pathname);
+
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        if (view === 'login' || view === 'admin-login') {
+          navigate('/admin/dashboard', { replace: true });
+          return;
         }
       } else {
-        if (['dashboard', 'admin-dashboard', 'profile', 'enquiries', 'settings'].includes(view)) {
-          handleViewChange(view === 'admin-dashboard' ? 'admin-login' : 'login');
+        if (view === 'admin-dashboard') {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        if (view === 'login' || view === 'admin-login') {
+          navigate('/dashboard', { replace: true });
           return;
         }
       }
-
-      setActiveView(view);
-    };
-
-    syncRoute();
-    window.addEventListener('popstate', syncRoute);
-    return () => window.removeEventListener('popstate', syncRoute);
-  }, []);
+    } else {
+      if (['dashboard', 'admin-dashboard', 'profile', 'enquiries', 'settings'].includes(view)) {
+        navigate(view === 'admin-dashboard' ? '/admin/login' : '/login', { replace: true });
+        return;
+      }
+    }
+  }, [location.pathname, currentUser, checkingSession, navigate]);
 
   // Fetch dashboard or admin data when activeView changes
   useEffect(() => {
@@ -138,30 +173,8 @@ export default function App() {
   }, [activeView, currentUser]);
 
   const handleViewChange = (view: ViewState) => {
-    // Determine path based on view state
-    let path = '/';
-    if (view === 'login') path = '/login';
-    else if (view === 'admin-login') path = '/admin/login';
-    else if (view === 'dashboard') path = '/dashboard';
-    else if (view === 'admin-dashboard') path = '/admin/dashboard';
-    else if (view === 'profile') path = '/profile';
-    else if (view === 'enquiries') path = '/enquiries';
-    else if (view === 'settings') path = '/settings';
-    else if (view === 'projects') path = '/projects';
-    else if (view === 'house-plans') path = '/house-plans';
-    else if (view === 'gallery') path = '/gallery';
-    else if (view === 'services') path = '/services';
-    else if (view === 'contact') path = '/contact';
-    else if (view === 'testimonials') path = '/testimonials';
-    else if (view === 'design-wizard') path = '/design-wizard';
-    else if (view === 'about') path = '/about';
-    else if (view === 'process') path = '/process';
-
-    if (window.location.pathname !== path) {
-      window.history.pushState({ view }, '', path);
-    }
-    
-    setActiveView(view);
+    const path = viewToPath[view] || '/';
+    navigate(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -186,7 +199,7 @@ export default function App() {
     setLoadingData(true);
     setDataError(null);
     try {
-      const res = await fetch('/api/enquiries/mine');
+      const res = await apiFetch('/api/enquiries/mine');
       if (res.ok) {
         const result = await res.json();
         if (result.success) {
@@ -214,7 +227,7 @@ export default function App() {
       if (editPhone) payload.phone = editPhone;
       if (editPassword) payload.password = editPassword;
 
-      const res = await fetch('/api/auth/profile', {
+      const res = await apiFetch('/api/auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -240,39 +253,39 @@ export default function App() {
   // ADMIN OPERATIONS: Fetch admin stats
   const fetchAdminStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats');
+      const res = await apiFetch('/api/admin/stats');
       if (res.ok) {
         const result = await res.json();
         if (result.success) setAdminStats(result.data);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Network error — stats remain null; UI handles empty state
     }
   };
 
   // ADMIN OPERATIONS: Fetch users
   const fetchAdminUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await apiFetch('/api/admin/users');
       if (res.ok) {
         const result = await res.json();
         if (result.success) setAdminUsers(result.data || []);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Network error — user list remains empty; UI handles empty state
     }
   };
 
   // ADMIN OPERATIONS: Fetch all enquiries
   const fetchAdminEnquiries = async () => {
     try {
-      const res = await fetch('/api/enquiries');
+      const res = await apiFetch('/api/enquiries');
       if (res.ok) {
         const result = await res.json();
         if (result.success) setAdminEnquiries(result.data || []);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // Network error — enquiry list remains empty; UI handles empty state
     }
   };
 
@@ -280,20 +293,20 @@ export default function App() {
   const handleDeleteUser = async (id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
-      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setAdminUsers(adminUsers.filter(u => u.id !== id && u._id !== id));
         fetchAdminStats();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setDataError('Failed to delete user. Please try again.');
     }
   };
 
   // ADMIN OPERATIONS: Block/Unblock user
   const handleToggleBlockUser = async (id: string, currentlyBlocked: boolean) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await apiFetch(`/api/admin/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ blocked: !currentlyBlocked })
@@ -301,15 +314,15 @@ export default function App() {
       if (res.ok) {
         fetchAdminUsers();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setDataError('Failed to update user status. Please try again.');
     }
   };
 
   // ADMIN OPERATIONS: Change role
   const handleChangeUserRole = async (id: string, newRole: string) => {
     try {
-      const res = await fetch(`/api/admin/users/${id}`, {
+      const res = await apiFetch(`/api/admin/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole })
@@ -318,8 +331,61 @@ export default function App() {
         fetchAdminUsers();
         fetchAdminStats();
       }
+    } catch {
+      setDataError('Failed to change user role. Please try again.');
+    }
+  };
+
+  const handleAdminImageUpload = async (file: File) => {
+    setContentStatus(null);
+    setContentLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileType', 'image');
+      const res = await apiFetch('/api/uploads', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.message || 'Image upload failed');
+      setContentImageUrl(result.data.url);
+      setContentStatus('Image uploaded. Add a title and publish it to the gallery.');
     } catch (err) {
-      console.error(err);
+      setContentStatus(err instanceof Error ? err.message : 'Image upload failed');
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
+  const handleCreateGalleryItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContentStatus(null);
+    setContentLoading(true);
+    try {
+      const res = await apiFetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: contentTitle,
+          category: contentCategory,
+          imageUrl: contentImageUrl,
+          desc: contentDesc,
+          description: contentDesc,
+          alt: contentTitle
+        })
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.message || 'Gallery item could not be created');
+      setContentTitle('');
+      setContentDesc('');
+      setContentImageUrl('');
+      setContentStatus('Gallery item published successfully.');
+      fetchAdminStats();
+    } catch (err) {
+      setContentStatus(err instanceof Error ? err.message : 'Gallery item could not be created');
+    } finally {
+      setContentLoading(false);
     }
   };
 
@@ -555,7 +621,7 @@ export default function App() {
 
               <div className="flex flex-col gap-1.5">
                 <button
-                  onClick={() => { setDashboardTab('profile'); handleViewChange('profile'); }}
+                  onClick={() => handleViewChange('profile')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-display text-[10px] font-bold uppercase tracking-wider text-left transition-all ${
                     dashboardTab === 'profile'
                       ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15'
@@ -566,7 +632,7 @@ export default function App() {
                   My Profile
                 </button>
                 <button
-                  onClick={() => { setDashboardTab('enquiries'); handleViewChange('enquiries'); }}
+                  onClick={() => handleViewChange('enquiries')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-display text-[10px] font-bold uppercase tracking-wider text-left transition-all ${
                     dashboardTab === 'enquiries'
                       ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15'
@@ -577,7 +643,7 @@ export default function App() {
                   My Enquiries
                 </button>
                 <button
-                  onClick={() => { setDashboardTab('settings'); handleViewChange('settings'); }}
+                  onClick={() => handleViewChange('settings')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-display text-[10px] font-bold uppercase tracking-wider text-left transition-all ${
                     dashboardTab === 'settings'
                       ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15'
@@ -782,6 +848,99 @@ export default function App() {
               </div>
             </div>
           );
+
+        case 'content':
+          return (
+            <div className="space-y-5 animate-fade-in w-full">
+              <h2 className="font-display text-base font-bold uppercase tracking-widest text-brand-gold border-b border-white/5 pb-2">
+                Content & Photo Add-ons
+              </h2>
+
+              {contentStatus && (
+                <div className="p-3 bg-brand-gold/10 border border-brand-gold/20 text-brand-gold text-xs rounded-xl">
+                  {contentStatus}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="p-5 bg-brand-surface-high border border-white/8 rounded-xl">
+                  <h3 className="font-display text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2">
+                    <Upload size={14} className="text-brand-gold" />
+                    Upload Photo
+                  </h3>
+                  <label className="flex flex-col items-center justify-center min-h-44 rounded-xl border border-dashed border-brand-gold/30 bg-brand-surface-container/35 hover:border-brand-gold/60 cursor-pointer transition-colors">
+                    <ImagePlus size={28} className="text-brand-gold mb-3" />
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-brand-on-surface">
+                      Choose image
+                    </span>
+                    <span className="text-[10px] text-brand-on-surface-variant/60 mt-1">JPG, PNG, WEBP</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAdminImageUpload(file);
+                      }}
+                    />
+                  </label>
+                  {contentImageUrl && (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-white/8 bg-brand-surface-lowest">
+                      <img src={contentImageUrl} alt="Uploaded preview" className="w-full h-40 object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleCreateGalleryItem} className="p-5 bg-brand-surface-high border border-white/8 rounded-xl space-y-3">
+                  <h3 className="font-display text-xs font-bold uppercase tracking-widest text-white mb-4">
+                    Publish Gallery Item
+                  </h3>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Title"
+                    value={contentTitle}
+                    onChange={(e) => setContentTitle(e.target.value)}
+                    className="w-full bg-brand-surface-container border border-white/8 px-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/30 text-brand-on-surface placeholder:text-brand-on-surface/25"
+                  />
+                  <select
+                    value={contentCategory}
+                    onChange={(e) => setContentCategory(e.target.value)}
+                    className="w-full bg-brand-surface-container border border-white/8 px-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/30 text-brand-on-surface"
+                  >
+                    <option>Residential</option>
+                    <option>Commercial</option>
+                    <option>Interior</option>
+                    <option>Exterior</option>
+                    <option>Construction</option>
+                  </select>
+                  <textarea
+                    required
+                    placeholder="Short description"
+                    value={contentDesc}
+                    onChange={(e) => setContentDesc(e.target.value)}
+                    className="w-full min-h-24 bg-brand-surface-container border border-white/8 px-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/30 text-brand-on-surface placeholder:text-brand-on-surface/25 resize-none"
+                  />
+                  <input
+                    type="url"
+                    required
+                    placeholder="Image URL"
+                    value={contentImageUrl}
+                    onChange={(e) => setContentImageUrl(e.target.value)}
+                    className="w-full bg-brand-surface-container border border-white/8 px-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/30 text-brand-on-surface placeholder:text-brand-on-surface/25"
+                  />
+                  <button
+                    type="submit"
+                    disabled={contentLoading}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-brand-gold text-[#0a0f18] font-display text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] disabled:opacity-60 transition-all"
+                  >
+                    {contentLoading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}
+                    Publish Add-on
+                  </button>
+                </form>
+              </div>
+            </div>
+          );
       }
     };
 
@@ -839,6 +998,17 @@ export default function App() {
                   <Clipboard size={13} />
                   All Enquiries
                 </button>
+                <button
+                  onClick={() => setAdminTab('content')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl font-display text-[10px] font-bold uppercase tracking-wider text-left transition-all ${
+                    adminTab === 'content'
+                      ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15'
+                      : 'text-brand-on-surface-variant hover:bg-white/5'
+                  }`}
+                >
+                  <ImagePlus size={13} />
+                  Content & Photos
+                </button>
               </div>
             </div>
 
@@ -858,45 +1028,6 @@ export default function App() {
         </div>
       </div>
     );
-  };
-
-  // Render content based on active view, including login pages and new views
-  const renderViewContent = () => {
-    switch (activeView) {
-      case 'home':
-        return <Home onViewChange={handleViewChange} onInquire={handleInquire} />;
-      case 'login':
-        return <UserLogin onLoginSuccess={handleLoginSuccess} />;
-      case 'admin-login':
-        return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
-      case 'dashboard':
-      case 'profile':
-      case 'enquiries':
-      case 'settings':
-        return renderUserDashboard();
-      case 'admin-dashboard':
-        return renderAdminDashboard();
-      case 'projects':
-        return <Projects onInquire={handleInquire} />;
-      case 'house-plans':
-        return <HousePlans onInquire={handleInquire} />;
-      case 'gallery':
-        return <VisualPortfolio />;
-      case 'services':
-        return <Services onInquire={handleInquire} />;
-      case 'process':
-        return <Process />;
-      case 'about':
-        return <About />;
-      case 'testimonials':
-        return <TestimonialsPage />;
-      case 'contact':
-        return <Contact onInquire={handleInquire} />;
-      case 'design-wizard':
-        return <DesignWizard onViewChange={handleViewChange} />;
-      default:
-        return <Home onViewChange={handleViewChange} onInquire={handleInquire} />;
-    }
   };
 
   if (checkingSession) {
@@ -929,14 +1060,141 @@ export default function App() {
       <main className="flex-grow">
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeView}
+            key={location.pathname}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
             className="w-full h-full"
           >
-            {renderViewContent()}
+            <Routes location={location}>
+              <Route path="/" element={
+                <>
+                  <Helmet>
+                    <title>NVS Buildcon | Architectural Design &amp; Turnkey Construction Lucknow &amp; Delhi NCR</title>
+                    <meta name="description" content="NVS Buildcon provides Vastu-compliant architectural design, structural engineering, and luxury turnkey construction services in Lucknow and Delhi NCR." />
+                  </Helmet>
+                  <Home onViewChange={handleViewChange} onInquire={handleInquire} />
+                </>
+              } />
+              
+              <Route path="/services" element={
+                <>
+                  <Helmet>
+                    <title>Architecture, Structural Engineering &amp; Turnkey Construction Services | NVS Buildcon</title>
+                    <meta name="description" content="NVS Buildcon offers 2D floor plans, 3D elevations, structural analysis, MEP drafting, and full-scope turnkey villa construction starting from ₹3/sq.ft." />
+                  </Helmet>
+                  <Services onInquire={handleInquire} />
+                </>
+              } />
+
+              <Route path="/projects" element={
+                <>
+                  <Helmet>
+                    <title>Completed Turnkey Residential &amp; Commercial Projects | NVS Buildcon</title>
+                    <meta name="description" content="Explore our portfolio of completed luxury residential villas, narrow urban houses, modern duplex elevations, and retail spaces in Lucknow and Delhi NCR." />
+                  </Helmet>
+                  <Projects onInquire={handleInquire} />
+                </>
+              } />
+
+              <Route path="/house-plans" element={
+                <>
+                  <Helmet>
+                    <title>Vastu-Compliant 2D Floor Plans &amp; House Layout Drawings | NVS Buildcon</title>
+                    <meta name="description" content="Browse architectural layouts, electrical plans, modular kitchen schematics, and detailed structural drawings prepared by NVS Buildcon." />
+                  </Helmet>
+                  <HousePlans onInquire={handleInquire} />
+                </>
+              } />
+
+              <Route path="/gallery" element={
+                <>
+                  <Helmet>
+                    <title>Architectural Elevation &amp; Interior Design Gallery | NVS Buildcon</title>
+                    <meta name="description" content="View high-resolution renders and executed photos of modern house elevations, luxury master bedroom suites, TV walls, and vanity niches." />
+                  </Helmet>
+                  <VisualPortfolio />
+                </>
+              } />
+
+              <Route path="/process" element={
+                <>
+                  <Helmet>
+                    <title>Our 8-Stage Architecture &amp; Turnkey Construction Process | NVS Buildcon</title>
+                    <meta name="description" content="Learn about our structured execution phases from Vastu planning, 3D renderings, structural RCC design, MEP coordination, to final construction handover." />
+                  </Helmet>
+                  <Process />
+                </>
+              } />
+
+              <Route path="/about" element={
+                <>
+                  <Helmet>
+                    <title>About NVS Buildcon | Premium Architecture &amp; Construction Company</title>
+                    <meta name="description" content="NVS Buildcon is a professional architecture and general contracting firm delivering precision-engineered, Vastu-aligned properties in Lucknow and Delhi NCR." />
+                  </Helmet>
+                  <About />
+                </>
+              } />
+
+              <Route path="/testimonials" element={
+                <>
+                  <Helmet>
+                    <title>Client Reviews &amp; Construction Testimonials | NVS Buildcon</title>
+                    <meta name="description" content="Read verified feedback from our residential and commercial clients regarding our architectural drawings, budget accuracy, and turnkey execution." />
+                  </Helmet>
+                  <TestimonialsPage />
+                </>
+              } />
+
+              <Route path="/contact" element={
+                <>
+                  <Helmet>
+                    <title>Contact NVS Buildcon | Request Project Estimate &amp; Consultation</title>
+                    <meta name="description" content="Get in touch with NVS Buildcon. Request a free quote, book a site visit, or submit project specifications for Lucknow and Delhi NCR offices." />
+                  </Helmet>
+                  <Contact onInquire={handleInquire} />
+                </>
+              } />
+
+              <Route path="/design-wizard" element={
+                <>
+                  <Helmet>
+                    <title>Interactive Dream Home Configuration Tool | NVS Buildcon</title>
+                    <meta name="description" content="Configure your custom home specifications, plot size, bedroom configuration, architectural style preference, and get a Vastu zoning recommendation." />
+                  </Helmet>
+                  <DesignWizard onViewChange={handleViewChange} />
+                </>
+              } />
+
+              <Route path="/login" element={
+                <>
+                  <Helmet>
+                    <title>Client Portal Login | NVS Buildcon</title>
+                    <meta name="description" content="Log in to your client account portal to review specification details, blueprints, active project estimates, and milestones." />
+                  </Helmet>
+                  <UserLogin onLoginSuccess={handleLoginSuccess} />
+                </>
+              } />
+
+              <Route path="/admin/login" element={
+                <>
+                  <Helmet>
+                    <title>Administrator Sign In | NVS Buildcon Portal</title>
+                    <meta name="description" content="Secure portal login interface for system administrators and principal designers of NVS Buildcon." />
+                  </Helmet>
+                  <AdminLogin onLoginSuccess={handleLoginSuccess} />
+                </>
+              } />
+
+              <Route path="/dashboard" element={renderUserDashboard()} />
+              <Route path="/profile" element={renderUserDashboard()} />
+              <Route path="/enquiries" element={renderUserDashboard()} />
+              <Route path="/settings" element={renderUserDashboard()} />
+              <Route path="/admin/dashboard" element={renderAdminDashboard()} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
           </motion.div>
         </AnimatePresence>
       </main>

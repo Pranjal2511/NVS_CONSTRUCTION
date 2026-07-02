@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, Phone, Mail, User, Clock, CheckCircle, Database } from 'lucide-react';
 import { Inquiry } from '../types';
+import HCaptchaWidget from './HCaptchaWidget';
+import { apiFetch } from '../utils/api';
 
 interface InquiryModalProps {
   isOpen: boolean;
@@ -20,7 +22,10 @@ export default function InquiryModal({
   const [phone, setPhone] = useState('');
   const [service, setService] = useState('Architectural Design');
   const [message, setMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pastInquiries, setPastInquiries] = useState<Inquiry[]>([]);
 
   useEffect(() => {
@@ -35,45 +40,78 @@ export default function InquiryModal({
     if (saved) {
       try {
         setPastInquiries(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
+      } catch {
+        // Corrupted localStorage data — silently reset; not critical
+        localStorage.removeItem('nvs_inquiries');
       }
     }
   }, []);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !phone) return;
 
-    const newInquiry: Inquiry = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      email,
-      phone,
-      service,
-      blueprintTitle: initialBlueprintTitle || undefined,
-      message: message || `Hi, I am interested in ${initialBlueprintTitle || service}. Please contact me.`,
-      date: new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    };
+    setError(null);
+    setLoading(true);
 
-    const updated = [newInquiry, ...pastInquiries];
-    setPastInquiries(updated);
-    localStorage.setItem('nvs_inquiries', JSON.stringify(updated));
-    setIsSubmitted(true);
+    try {
+      const msg = message || `Hi, I am interested in ${initialBlueprintTitle || service}. Please contact me.`;
+      const res = await apiFetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          email,
+          service,
+          blueprintTitle: initialBlueprintTitle || undefined,
+          message: msg,
+          'h-captcha-response': captchaToken
+        })
+      });
 
-    // Reset fields
-    setName('');
-    setEmail('');
-    setPhone('');
-    setMessage('');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to submit enquiry.');
+      }
+
+      const result = await res.json();
+      const dbEnquiry = result.enquiry || result.data?.enquiry || {};
+
+      const newInquiry: Inquiry = {
+        id: dbEnquiry._id || dbEnquiry.id || Math.random().toString(36).substr(2, 9),
+        name,
+        email,
+        phone,
+        service,
+        blueprintTitle: initialBlueprintTitle || undefined,
+        message: msg,
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+
+      const updated = [newInquiry, ...pastInquiries];
+      setPastInquiries(updated);
+      localStorage.setItem('nvs_inquiries', JSON.stringify(updated));
+      setIsSubmitted(true);
+
+      // Reset fields
+      setName('');
+      setEmail('');
+      setPhone('');
+      setMessage('');
+    } catch (err: any) {
+      setError(err.message || 'Server error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -240,11 +278,21 @@ export default function InquiryModal({
                   ></textarea>
                 </div>
 
+                {error && (
+                  <p className="text-sm text-red-400 my-2 bg-red-500/10 border border-red-500/20 rounded-lg py-2 px-3">
+                    {error}
+                  </p>
+                )}
+
+                {/* hCaptcha Widget */}
+                <HCaptchaWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+
                 <button
                   type="submit"
-                  className="w-full bg-brand-secondary hover:bg-brand-secondary/90 text-brand-on-primary py-3 rounded-lg text-sm font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-brand-secondary/10 hover:shadow-brand-secondary/20"
+                  disabled={loading}
+                  className="w-full bg-brand-secondary hover:bg-brand-secondary/90 text-brand-on-primary py-3 rounded-lg text-sm font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-brand-secondary/10 hover:shadow-brand-secondary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send size={16} /> Submit Project Blueprint Request
+                  {loading ? 'Transmitting Request...' : 'Submit Project Blueprint Request'} <Send size={16} />
                 </button>
               </div>
             </form>
