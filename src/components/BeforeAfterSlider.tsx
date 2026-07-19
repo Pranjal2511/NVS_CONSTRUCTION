@@ -95,6 +95,8 @@ export default function BeforeAfterSlider({
           src={afterImage}
           alt="Completed structure"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          loading="lazy"
+          decoding="async"
         />
         <div className="absolute bottom-4 right-6 z-20 glass-gold px-4 py-1.5 rounded-lg">
           <span className="font-display text-brand-gold text-[10px] uppercase tracking-widest font-bold">
@@ -112,6 +114,8 @@ export default function BeforeAfterSlider({
             alt="Structure under construction"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             style={{ width: containerRef.current?.getBoundingClientRect().width }}
+            loading="lazy"
+            decoding="async"
           />
           <div className="absolute bottom-4 left-6 z-20 bg-brand-surface-lowest/90 border border-white/10 px-4 py-1.5 rounded-lg">
             <span className="font-display text-white/60 text-[10px] uppercase tracking-widest font-bold">

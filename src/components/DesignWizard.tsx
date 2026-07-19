@@ -307,7 +307,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
                         >
                           {/* Background overlay */}
                           <div className="absolute inset-0 z-0 opacity-20 hover:opacity-35 transition-opacity">
-                            <img src={item.img} alt={item.name} className="w-full h-full object-cover" />
+                            <img src={item.img} alt={item.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                           </div>
                           <div className="relative z-10 flex flex-col justify-between h-full">
                             <h4 className={`font-display text-sm font-bold ${style === item.name ? 'text-brand-gold' : 'text-white'}`}>

@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Crawl-delay: 1
 
 # Block private/auth routes from indexing
 Disallow: /login
@@ -8,5 +9,22 @@ Disallow: /dashboard
 Disallow: /profile
 Disallow: /enquiries
 Disallow: /settings
+Disallow: /saved-plans
+Disallow: /saved-quotes
+Disallow: /wishlist
+Disallow: /notifications
+Disallow: /downloads
+Disallow: /appointments
+Disallow: /reset-password
+
+# Block API and upload directories
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /node_modules/
+
+# Allow specific assets
+Allow: /images/
+Allow: /pdfs/
+Allow: /public/
 
 Sitemap: https://nvsbuildcon.com/sitemap.xml

@@ -1,9 +1,11 @@
 // src/components/Hero.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowRight, CheckCircle, ChevronDown, MessageCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, ChevronDown, MessageCircle, Calendar } from 'lucide-react';
+import MagneticButton from './MagneticButton';
 
 interface HeroProps {
   onInquire: () => void;
+  onBookConsultation: () => void;
 }
 
 const words = ['Designing Homes', 'That Feel', 'Built Around You'];
@@ -14,7 +16,7 @@ const serviceHighlights = [
   'Site Guidance',
 ];
 
-export default function Hero({ onInquire }: HeroProps) {
+export default function Hero({ onInquire, onBookConsultation }: HeroProps) {
   const [revealed, setRevealed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -47,6 +49,8 @@ export default function Hero({ onInquire }: HeroProps) {
           loop
           playsInline
           poster="/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg"
+          preload="auto"
+          fetchPriority="high"
           onError={() => {
             if (videoRef.current) videoRef.current.style.display = 'none';
           }}
@@ -54,9 +58,13 @@ export default function Hero({ onInquire }: HeroProps) {
           <source src="/videos/construction-timelapse.mp4" type="video/mp4" />
         </video>
 
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg')" }}
+        <img
+          src="/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg"
+          alt="NVS Buildcon construction site background"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
         />
       </div>
 
@@ -111,14 +119,18 @@ export default function Hero({ onInquire }: HeroProps) {
           className="flex flex-wrap items-center gap-4 opacity-0"
           style={{ animation: revealed ? 'fadeInUp 0.7s ease 0.85s forwards' : 'none' }}
         >
-          <button onClick={onInquire} className="btn-gold group">
+          <MagneticButton onClick={onInquire} variant="gold" className="gap-2">
             Get Free Quote
             <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-          </button>
-          <button onClick={openWhatsApp} className="btn-outline-gold">
+          </MagneticButton>
+          <MagneticButton onClick={onBookConsultation} variant="outline-gold" className="gap-2">
+            <Calendar size={14} />
+            Book Consultation
+          </MagneticButton>
+          <MagneticButton onClick={openWhatsApp} variant="outline-gold" className="gap-2">
             <MessageCircle size={14} />
             WhatsApp Us
-          </button>
+          </MagneticButton>
         </div>
       </div>
 

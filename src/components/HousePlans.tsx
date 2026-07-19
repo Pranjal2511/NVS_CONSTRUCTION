@@ -154,7 +154,9 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2.5 rounded-xl text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 ${
+                aria-pressed={selectedCategory === cat}
+                aria-label={`Filter house plans by ${cat}`}
+                className={`px-4 py-2.5 rounded-xl text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
                   selectedCategory === cat
                     ? 'bg-brand-gold text-[#0a0f18] shadow-lg shadow-brand-gold/10'
                     : 'bg-brand-surface-container border border-white/5 text-brand-on-surface-variant/80 hover:text-white'
@@ -175,7 +177,8 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
               placeholder="Search plans, size, or type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-brand-surface-lowest text-brand-on-surface placeholder:text-brand-on-surface-variant/40 pl-10 pr-4 py-2.5 rounded-lg border border-white/5 focus:border-brand-gold/50 focus:ring-1 focus:ring-brand-gold/30 text-xs focus:outline-none transition-all"
+              aria-label="Search house plans"
+              className="w-full bg-brand-surface-lowest text-brand-on-surface placeholder:text-brand-on-surface-variant/40 pl-10 pr-4 py-2.5 rounded-lg border border-white/5 focus:border-brand-gold/50 focus:ring-2 focus:ring-brand-gold/30 text-xs focus:outline-none transition-all"
             />
           </div>
         </div>
@@ -211,14 +214,16 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.4, delay: index * 0.02 }}
-                  className="group flex flex-col justify-between bg-brand-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-brand-gold/20 transition-all duration-500 shadow-xl relative"
+                  className="group flex flex-col justify-between bg-brand-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-brand-gold/30 transition-all duration-700 shadow-xl relative hover:shadow-2xl hover:shadow-brand-gold/5"
                 >
                   {/* Thumbnail Header */}
                   <div className="relative h-48 overflow-hidden bg-brand-surface-lowest">
                     <img
                       src={plan.imageUrl}
                       alt={plan.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 brightness-[0.8]"
+                      className="w-full h-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-110 brightness-[0.85] group-hover:brightness-100"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute top-4 left-4 glass-gold border border-brand-gold/20 px-2.5 py-1 rounded text-[9px] font-bold font-display uppercase tracking-wider text-brand-gold">
                       {getPlanCategory(plan)}
@@ -230,11 +235,13 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
                         e.stopPropagation();
                         toggleSavePlan(plan);
                       }}
-                      className="absolute top-4 right-4 p-2 rounded-full glass-panel border border-white/10 hover:border-brand-gold/40 text-brand-on-surface-variant hover:text-brand-gold transition-all duration-300 z-10"
+                      aria-label={savedIds.includes(plan._id || plan.id) ? `Remove ${plan.title} from saved plans` : `Save ${plan.title} to plans`}
+                      aria-pressed={savedIds.includes(plan._id || plan.id)}
+                      className="absolute top-4 right-4 p-2 rounded-full glass-panel border border-white/10 hover:border-brand-gold/40 text-brand-on-surface-variant hover:text-brand-gold transition-all duration-300 z-10 focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                     >
-                      <Heart 
-                        size={14} 
-                        className={savedIds.includes(plan._id || plan.id) ? "fill-red-500 text-red-500" : "text-white"} 
+                      <Heart
+                        size={14}
+                        className={savedIds.includes(plan._id || plan.id) ? "fill-red-500 text-red-500" : "text-white"}
                       />
                     </button>
 

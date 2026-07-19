@@ -69,7 +69,9 @@ export default function VisualPortfolio() {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 ${
+              aria-pressed={activeFilter === f}
+              aria-label={`Filter gallery by ${f}`}
+              className={`px-5 py-2.5 rounded-xl text-[10px] font-bold font-display uppercase tracking-widest transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
                 activeFilter === f
                   ? 'bg-brand-gold text-[#0a0f18] shadow-lg shadow-brand-gold/10'
                   : 'bg-transparent text-brand-on-surface-variant/80 hover:text-white'
@@ -97,7 +99,11 @@ export default function VisualPortfolio() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.4, delay: index * 0.02 }}
                 onClick={() => setLightboxIndex(index)}
-                className="break-inside-avoid relative group rounded-2xl overflow-hidden border border-white/5 bg-brand-surface-container cursor-pointer shadow-lg hover:shadow-2xl hover:border-brand-gold/20 transition-all duration-300 hover:-translate-y-1 block"
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${item.title} in lightbox`}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setLightboxIndex(index); }}
+                className="break-inside-avoid relative group rounded-2xl overflow-hidden border border-white/5 bg-brand-surface-container cursor-pointer shadow-lg hover:shadow-2xl hover:border-brand-gold/20 transition-all duration-300 hover:-translate-y-1 block focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
               >
                 {/* Image */}
                 <div className="relative overflow-hidden w-full h-auto">
@@ -106,6 +112,7 @@ export default function VisualPortfolio() {
                     alt={item.alt}
                     className="w-full object-cover transition-transform duration-700 group-hover:scale-103"
                     loading="lazy"
+                    decoding="async"
                   />
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-[#050a12]/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-6 z-10">
@@ -142,6 +149,9 @@ export default function VisualPortfolio() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[200] bg-[#050a12]/98 backdrop-blur-lg flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image Lightbox"
           >
             {/* Main Container */}
             <motion.div 
@@ -165,6 +175,8 @@ export default function VisualPortfolio() {
                   src={filteredItems[lightboxIndex].imageUrl}
                   alt={filteredItems[lightboxIndex].alt}
                   className="w-full h-full object-contain max-h-[65vh] p-2"
+                  loading="lazy"
+                  decoding="async"
                 />
 
                 {/* Navigation Arrows */}

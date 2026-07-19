@@ -9,6 +9,7 @@ interface NavbarProps {
   activeView: ViewState;
   onViewChange: (view: ViewState) => void;
   onInquire: () => void;
+  onBookConsultation: () => void;
   currentUser: AuthUser | null;
   onLogout: () => void;
 }
@@ -17,6 +18,7 @@ export default function Navbar({
   activeView,
   onViewChange,
   onInquire,
+  onBookConsultation,
   currentUser,
   onLogout
 }: NavbarProps) {
@@ -85,6 +87,8 @@ export default function Navbar({
           : 'bg-brand-surface/80 backdrop-blur-md border-b border-brand-gold/10'
       }`}
     >
+      {/* Subtle top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-brand-gold/30 to-transparent" />
       <div className="flex justify-between items-center px-6 md:px-12 h-[68px] w-full max-w-[1400px] mx-auto">
 
         {/* ── Logo ─────────────────────────────────────────────────── */}
@@ -94,19 +98,12 @@ export default function Navbar({
           className="group flex items-center gap-3 focus:outline-none"
           aria-label="NVS Buildcon home"
         >
-          <span className="relative flex items-center justify-center w-9 h-9 bg-brand-gold rounded-lg shadow-lg shadow-brand-gold/30 group-hover:scale-105 transition-transform duration-200">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0a0f18" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="3 11 12 2 21 11 12 22 3 11"/>
-            </svg>
-          </span>
-          <div className="flex flex-col items-start leading-none">
-            <span className="font-display text-[15px] font-black tracking-[0.18em] text-brand-on-surface uppercase">
-              NVS Buildcon
-            </span>
-            <span className="font-display text-[8px] font-semibold tracking-[0.35em] text-brand-gold uppercase mt-0.5">
-              Architecture & Construction
-            </span>
-          </div>
+          <img
+            src="/images/nvs-logo.png"
+            alt="NVS Buildcon Logo"
+            className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-200"
+            loading="eager"
+          />
         </Link>
 
         {/* ── Desktop Nav Links ─────────────────────────────────────── */}
@@ -140,6 +137,14 @@ export default function Navbar({
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+
+          {/* Book Consultation CTA — desktop */}
+          <button
+            onClick={onBookConsultation}
+            className="hidden xl:flex items-center gap-1.5 px-4 py-2.5 border border-brand-gold/40 text-brand-gold font-display text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-brand-gold/10 hover:border-brand-gold transition-all duration-200"
+          >
+            Book Consultation
           </button>
 
           {/* Free Quote CTA — desktop */}

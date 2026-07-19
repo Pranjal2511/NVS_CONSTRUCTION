@@ -40,6 +40,8 @@ function ShowcaseItem({
           alt={project.title}
           className="w-full h-full object-cover transition-transform duration-[1.2s] ease-in-out group-hover:scale-105"
           style={{ minHeight: '450px' }}
+          loading="lazy"
+          decoding="async"
         />
         {/* Category tag */}
         <div className="absolute top-6 left-6 glass-gold px-4 py-1.5">

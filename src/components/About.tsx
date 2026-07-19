@@ -57,6 +57,8 @@ export default function About() {
                 src="/images/WhatsApp Image 2026-06-29 at 13.04.30 (1).jpeg"
                 alt="Modern home project by NVS Buildcon"
                 className="w-full h-full object-cover brightness-[0.82] transition-transform duration-[1.1s] group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f18]/90 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 p-5 glass-panel rounded-xl border border-white/5">

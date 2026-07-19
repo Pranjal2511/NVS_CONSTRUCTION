@@ -19,6 +19,13 @@ app.set('trust proxy', 1);
 
 app.use(helmetMiddleware);
 app.use(corsMiddleware);
+
+// Add performance and security headers
+app.use((req, res, next) => {
+  res.setHeader('X-DNS-Prefetch-Control', 'on');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  next();
+});
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));

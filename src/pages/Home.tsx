@@ -14,16 +14,17 @@ import { Quote, Star, ArrowRight, Compass, Shield, Layout, Sparkles } from 'luci
 interface HomeProps {
   onViewChange: (view: ViewState) => void;
   onInquire: (service?: string) => void;
+  onBookConsultation: () => void;
 }
 
-export default function Home({ onViewChange, onInquire }: HomeProps) {
+export default function Home({ onViewChange, onInquire, onBookConsultation }: HomeProps) {
   // Highlight first two testimonials on the home page
   const homeTestimonials = TESTIMONIALS_DATA.slice(0, 2);
 
   return (
     <div className="relative">
       {/* 1. Hero Section */}
-      <Hero onInquire={onInquire} />
+      <Hero onInquire={onInquire} onBookConsultation={onBookConsultation} />
 
       {/* 2. Premium Brand Intro (About Teaser) */}
       <section className="section-padding bg-brand-surface-lowest relative">
@@ -258,12 +259,20 @@ export default function Home({ onViewChange, onInquire }: HomeProps) {
           <p className="font-serif text-brand-on-surface-variant/70 text-xl font-light mb-12 max-w-2xl mx-auto leading-relaxed">
             Configure your plot size, architectural style, and spatial needs. Our principal designers will draft a custom Vastu-aligned layout.
           </p>
-          <button
-            onClick={() => onViewChange('design-wizard')}
-            className="btn-gold text-sm px-12 py-5 shadow-lg shadow-brand-gold/10 hover:shadow-brand-gold/20"
-          >
-            Start the Journey →
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <button
+              onClick={() => onViewChange('design-wizard')}
+              className="btn-gold text-sm px-12 py-5 shadow-lg shadow-brand-gold/10 hover:shadow-brand-gold/20"
+            >
+              Start the Journey →
+            </button>
+            <button
+              onClick={onBookConsultation}
+              className="btn-outline-gold text-sm px-8 py-5"
+            >
+              Book a Free Consultation
+            </button>
+          </div>
         </div>
         <div className="gold-line mt-12" />
       </section>

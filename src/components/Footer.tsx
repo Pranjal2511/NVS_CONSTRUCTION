@@ -1,4 +1,4 @@
-import { Landmark, ArrowUp, Mail, Phone, MapPin } from 'lucide-react';
+import { ArrowUp, Mail, Phone, MapPin } from 'lucide-react';
 import { ViewState } from '../types';
 
 interface FooterProps {
@@ -17,9 +17,13 @@ export default function Footer({ onViewChange, onInquire }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
           {/* Column 1: Brand block */}
           <div className="md:col-span-4 space-y-4">
-            <div className="flex items-center gap-2 text-white font-display text-lg font-bold tracking-[0.2em] mb-4 uppercase">
-              <span className="text-brand-gold"><Landmark size={20} /></span>
-              NVS BUILDCON
+            <div className="mb-4">
+              <img
+                src="/images/nvs-logo.png"
+                alt="NVS Buildcon Logo"
+                className="h-12 w-auto object-contain"
+                loading="lazy"
+              />
             </div>
             <p className="text-xs md:text-sm leading-relaxed max-w-sm font-light text-brand-on-surface-variant/80">
               Smart Planning • Modern Design • Practical Construction. Precision architectural drawings, Vastu-compliant layouts, and project planning support.

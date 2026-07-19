@@ -43,7 +43,28 @@ const setupFrontend = async () => {
   } else {
     logger.info('Starting in production mode');
     const distPath = path.join(rootDir, 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        // Long-term caching for hashed assets (JS, CSS with content hash)
+        if (filePath.includes('.js') || filePath.includes('.css')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+        // Long-term caching for images and fonts
+        else if (filePath.match(/\.(jpg|jpeg|png|gif|webp|svg|ico|woff|woff2|ttf|eot)$/i)) {
+          res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+        }
+        // HTML files should not be cached
+        else if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        }
+        // Default caching for other static assets
+        else {
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+        // Add ETag for validation
+        res.setHeader('ETag', 'strong');
+      }
+    }));
     app.get('*', (req, res, next) => {
       if (req.originalUrl.startsWith('/api')) return next();
       res.sendFile(path.join(distPath, 'index.html'));
