@@ -88,7 +88,19 @@ export default function App() {
   const [inquiryBlueprintTitle, setInquiryBlueprintTitle] = useState<string | undefined>(undefined);
   const [inquiryService, setInquiryService] = useState<string | undefined>(undefined);
 
+  // Derived active view from URL
+  const activeView: ViewState = pathToView(location.pathname);
 
+  const handleInquire = (serviceOrTitle?: string, asBlueprint?: boolean) => {
+    if (asBlueprint) {
+      setInquiryBlueprintTitle(serviceOrTitle);
+      setInquiryService(undefined);
+    } else {
+      setInquiryService(serviceOrTitle);
+      setInquiryBlueprintTitle(undefined);
+    }
+    setIsInquiryOpen(true);
+  };
 
 
 
@@ -172,7 +184,9 @@ export default function App() {
   }
 
   // Determine if we should hide the site chrome (navbar, footer) for full-screen portals
-  const isPortalRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/dashboard') || ['profile','enquiries','settings'].some(p => location.pathname === `/${p}`);
+  const isPortalRoute = location.pathname.startsWith('/admin') || 
+                        location.pathname.startsWith('/dashboard') || 
+                        ['profile','enquiries','settings','saved-plans','saved-quotes','wishlist','notifications','downloads','appointments'].some(p => location.pathname === `/${p}`);
 
   return (
     <div className="min-h-screen bg-brand-surface text-brand-on-surface selection:bg-brand-gold/20 selection:text-brand-gold flex flex-col">
@@ -346,6 +360,12 @@ export default function App() {
 
               <Route path="/dashboard" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
               <Route path="/profile" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/saved-plans" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/saved-quotes" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/wishlist" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/notifications" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/downloads" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
+              <Route path="/appointments" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
               <Route path="/enquiries" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
               <Route path="/settings" element={currentUser ? <ClientPortal currentUser={currentUser} onLogout={handleLogout} onNavigate={(p) => navigate(p)} onInquire={() => handleInquire()} /> : <Navigate to="/login" replace />} />
               <Route path="/admin/dashboard" element={<AdminDashboard currentUser={currentUser!} onLogout={handleLogout} />} />

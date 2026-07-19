@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   LayoutDashboard, User, BookOpen, FileText, Heart, Bell,
   Download, Calendar, Clipboard, Settings, LogOut, ChevronRight,
   Upload, Lock, Phone, Mail, Shield, RefreshCw, ExternalLink,
-  AlertCircle, CheckCircle, Clock, Star, Home as HomeIcon, Loader2, X, Menu
+  AlertCircle, CheckCircle, Clock, Star, Home as HomeIcon, Loader2, X, Menu, Eye
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 import { AuthUser, logout as authLogout, signOutAllDevices, fetchUserProfile } from '../utils/auth';
@@ -18,6 +19,31 @@ interface Appointment {
   time: string;
   status: string;
   notes?: string;
+  createdAt: string;
+}
+
+interface SavedQuote {
+  _id: string;
+  title: string;
+  amount: number;
+  area?: number;
+  details?: string;
+  date: string;
+}
+
+interface WishlistItem {
+  _id: string;
+  title: string;
+  imageUrl?: string;
+  category?: string;
+  refId: string;
+}
+
+interface PortalNotification {
+  _id: string;
+  message: string;
+  read: boolean;
+  type: 'enquiry' | 'appointment' | 'download' | 'general';
   createdAt: string;
 }
 
@@ -54,7 +80,7 @@ function UserAvatar({ user, size = 'md' }: { user: AuthUser & { avatar?: string 
     <img
       src={user.avatar}
       alt={user.name}
-      className={`${sizeMap[size]} rounded-full object-cover border-2 border-brand-gold/40 shadow-md`}
+      className={`${sizeMap[size]} rounded-full object-cover border-2 border-brand-gold/40 shadow-md transition-transform duration-300 hover:scale-105`}
     />
   ) : (
     <div className={`${sizeMap[size]} rounded-full bg-gradient-to-br from-brand-gold/30 to-brand-gold/10 text-brand-gold font-black font-display flex items-center justify-center border-2 border-brand-gold/30 shadow-md`}>
@@ -64,9 +90,12 @@ function UserAvatar({ user, size = 'md' }: { user: AuthUser & { avatar?: string 
 }
 
 /* ─── Stat Card ──────────────────────────────────────────────────── */
-function StatCard({ icon: Icon, label, value, gradient }: { icon: React.ElementType; label: string; value: string | number; gradient: string }) {
+function StatCard({ icon: Icon, label, value, gradient, onClick }: { icon: React.ElementType; label: string; value: string | number; gradient: string; onClick?: () => void }) {
   return (
-    <div className="relative p-5 rounded-2xl border border-white/8 bg-brand-surface-high overflow-hidden">
+    <div 
+      onClick={onClick}
+      className={`relative p-5 rounded-2xl border border-white/8 bg-brand-surface-high overflow-hidden transition-all duration-300 ${onClick ? 'cursor-pointer hover:border-brand-gold/30 hover:bg-white/[0.02]' : ''}`}
+    >
       <div className={`absolute inset-0 opacity-[0.04] bg-gradient-to-br ${gradient}`} />
       <div className="relative flex items-start justify-between">
         <div>
@@ -84,12 +113,12 @@ function StatCard({ icon: Icon, label, value, gradient }: { icon: React.ElementT
 /* ─── Empty State ─────────────────────────────────────────────────── */
 function EmptyState({ icon: Icon, title, desc, action }: { icon: React.ElementType; title: string; desc: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="flex flex-col items-center justify-center py-20 text-center glass-panel rounded-2xl border border-white/5 px-6">
       <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/8 flex items-center justify-center mb-5">
-        <Icon size={28} className="text-brand-on-surface-variant/30" />
+        <Icon size={28} className="text-brand-on-surface-variant/40 animate-pulse" />
       </div>
       <h3 className="font-display text-sm font-bold uppercase tracking-widest text-brand-on-surface mb-2">{title}</h3>
-      <p className="text-xs text-brand-on-surface-variant/60 max-w-xs leading-relaxed">{desc}</p>
+      <p className="text-xs text-brand-on-surface-variant/65 max-w-xs leading-relaxed">{desc}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
@@ -119,12 +148,13 @@ interface ClientPortalProps {
   currentUser: AuthUser;
   onLogout: () => void;
   onNavigate: (path: string) => void;
-  onInquire: () => void;
+  onInquire: (title?: string) => void;
 }
 
 const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNavigate, onInquire }) => {
   const [tab, setTab] = useState<PortalTab>('overview');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
 
   /* profile state */
   const [editName, setEditName] = useState(currentUser.name);
@@ -142,6 +172,36 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
   /* appointments */
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [apptLoading, setApptLoading] = useState(false);
+
+  /* saved plans */
+  const [savedPlans, setSavedPlans] = useState<any[]>([]);
+  const [savedPlansLoading, setSavedPlansLoading] = useState(false);
+
+  /* saved quotes */
+  const [savedQuotes, setSavedQuotes] = useState<SavedQuote[]>([]);
+  const [savedQuotesLoading, setSavedQuotesLoading] = useState(false);
+
+  /* wishlist */
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  /* notifications */
+  const [notifications, setNotifications] = useState<PortalNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  /* downloads */
+  const [downloads, setDownloads] = useState<string[]>([]);
+  const [downloadsLoading, setDownloadsLoading] = useState(false);
+
+  /* Tab-URL Sync */
+  useEffect(() => {
+    const path = location.pathname.substring(1);
+    if (path === 'dashboard') {
+      setTab('overview');
+    } else if (['profile', 'saved-plans', 'saved-quotes', 'wishlist', 'notifications', 'downloads', 'appointments', 'enquiries', 'settings'].includes(path)) {
+      setTab(path as PortalTab);
+    }
+  }, [location.pathname]);
 
   /* fetchers */
   const fetchEnquiries = useCallback(async () => {
@@ -162,10 +222,122 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
     } catch { /* ignore */ } finally { setApptLoading(false); }
   }, []);
 
+  const fetchSavedPlans = useCallback(async () => {
+    setSavedPlansLoading(true);
+    try {
+      const res = await apiFetch('/api/user/saved-plans');
+      const d = await res.json();
+      if (d.success) setSavedPlans(d.data || []);
+    } catch { /* ignore */ } finally { setSavedPlansLoading(false); }
+  }, []);
+
+  const fetchSavedQuotes = useCallback(async () => {
+    setSavedQuotesLoading(true);
+    try {
+      const res = await apiFetch('/api/user/saved-quotes');
+      const d = await res.json();
+      if (d.success) setSavedQuotes(d.data || []);
+    } catch { /* ignore */ } finally { setSavedQuotesLoading(false); }
+  }, []);
+
+  const fetchWishlist = useCallback(async () => {
+    setWishlistLoading(true);
+    try {
+      const res = await apiFetch('/api/user/wishlist');
+      const d = await res.json();
+      if (d.success) setWishlist(d.data || []);
+    } catch { /* ignore */ } finally { setWishlistLoading(false); }
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      const res = await apiFetch('/api/user/notifications');
+      const d = await res.json();
+      if (d.success) setNotifications(d.data || []);
+    } catch { /* ignore */ } finally { setNotificationsLoading(false); }
+  }, []);
+
+  const fetchDownloads = useCallback(async () => {
+    setDownloadsLoading(true);
+    try {
+      const res = await apiFetch('/api/user/pdfs');
+      const d = await res.json();
+      if (d.success) setDownloads(d.data || []);
+    } catch { /* ignore */ } finally { setDownloadsLoading(false); }
+  }, []);
+
   useEffect(() => {
     fetchEnquiries();
     fetchAppointments();
-  }, [fetchEnquiries, fetchAppointments]);
+    fetchSavedPlans();
+    fetchSavedQuotes();
+    fetchWishlist();
+    fetchNotifications();
+    fetchDownloads();
+  }, [
+    fetchEnquiries,
+    fetchAppointments,
+    fetchSavedPlans,
+    fetchSavedQuotes,
+    fetchWishlist,
+    fetchNotifications,
+    fetchDownloads
+  ]);
+
+  /* handlers */
+  const handleRemovePlan = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/user/saved-plans/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSavedPlans(prev => prev.filter(p => p._id !== id && p.id !== id));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleRemoveQuote = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/user/saved-quotes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSavedQuotes(prev => prev.filter(q => q._id !== id));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleRemoveWishlist = async (refId: string) => {
+    try {
+      const res = await apiFetch(`/api/user/wishlist/${refId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setWishlist(prev => prev.filter(item => item.refId !== refId && item._id !== refId));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/user/notifications/${id}/read`, { method: 'PATCH' });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      const res = await apiFetch('/api/user/notifications/read-all', { method: 'PATCH' });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      }
+    } catch { /* ignore */ }
+  };
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(val);
+  };
 
   /* profile save */
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -210,7 +382,17 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
   };
 
   /* nav helper */
-  const goTo = (t: PortalTab) => { setTab(t); setMobileOpen(false); };
+  const goTo = (t: PortalTab) => {
+    setTab(t);
+    setMobileOpen(false);
+    if (t === 'overview') {
+      onNavigate('/dashboard');
+    } else {
+      onNavigate(`/${t}`);
+    }
+  };
+
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
   /* ── Render Tabs ── */
   const renderContent = () => {
@@ -235,36 +417,69 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
 
             {/* Stats Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={Clipboard} label="Enquiries"    value={enquiries.length}    gradient="from-blue-600 to-blue-400" />
-              <StatCard icon={Calendar}  label="Appointments" value={appointments.length} gradient="from-purple-600 to-purple-400" />
-              <StatCard icon={Star}      label="Saved Plans"  value="0"                   gradient="from-amber-600 to-amber-400" />
-              <StatCard icon={Heart}     label="Wishlist"     value="0"                   gradient="from-rose-600 to-rose-400" />
+              <StatCard icon={Clipboard} label="Enquiries"    value={enquiries.length}    gradient="from-blue-600 to-blue-400" onClick={() => goTo('enquiries')} />
+              <StatCard icon={Calendar}  label="Appointments" value={appointments.length} gradient="from-purple-600 to-purple-400" onClick={() => goTo('appointments')} />
+              <StatCard icon={Star}      label="Saved Plans"  value={savedPlans.length}   gradient="from-amber-600 to-amber-400" onClick={() => goTo('saved-plans')} />
+              <StatCard icon={Heart}     label="Wishlist"     value={wishlist.length}     gradient="from-rose-600 to-rose-400" onClick={() => goTo('wishlist')} />
             </div>
 
-            {/* Recent Enquiries */}
-            <div className="bg-brand-surface-high rounded-2xl border border-white/8 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
-                <h3 className="font-display text-xs font-black uppercase tracking-widest text-brand-on-surface">Recent Enquiries</h3>
-                <button onClick={() => goTo('enquiries')}
-                  className="text-[10px] font-bold uppercase tracking-widest text-brand-gold hover:text-brand-gold/70 flex items-center gap-1 transition-colors">
-                  View All <ChevronRight size={12} />
-                </button>
-              </div>
-              {enquiries.length === 0 ? (
-                <div className="px-5 py-8 text-center text-xs text-brand-on-surface-variant/50">No enquiries yet.</div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {enquiries.slice(0, 3).map((q: any) => (
-                    <div key={q._id || q.id} className="flex items-center justify-between px-5 py-4">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{q.service}</p>
-                        <p className="text-[11px] text-brand-on-surface-variant mt-0.5 line-clamp-1">{q.message}</p>
-                      </div>
-                      <StatusBadge status={q.status || 'New'} />
+            {/* Enquiries & Appointments split layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Enquiries */}
+              <div className="bg-brand-surface-high rounded-2xl border border-white/8 overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                    <h3 className="font-display text-xs font-black uppercase tracking-widest text-brand-on-surface">Recent Enquiries</h3>
+                    <button onClick={() => goTo('enquiries')}
+                      className="text-[10px] font-bold uppercase tracking-widest text-brand-gold hover:text-brand-gold/70 flex items-center gap-1 transition-colors">
+                      View All <ChevronRight size={12} />
+                    </button>
+                  </div>
+                  {enquiries.length === 0 ? (
+                    <div className="px-5 py-12 text-center text-xs text-brand-on-surface-variant/50">No enquiries yet.</div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {enquiries.slice(0, 3).map((q: any) => (
+                        <div key={q._id || q.id} className="flex items-center justify-between px-5 py-4">
+                          <div>
+                            <p className="text-xs font-bold text-white">{q.service}</p>
+                            <p className="text-[10px] text-brand-on-surface-variant/65 mt-0.5 line-clamp-1">{q.message}</p>
+                          </div>
+                          <StatusBadge status={q.status || 'New'} />
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Recent Appointments */}
+              <div className="bg-brand-surface-high rounded-2xl border border-white/8 overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                    <h3 className="font-display text-xs font-black uppercase tracking-widest text-brand-on-surface">Recent Appointments</h3>
+                    <button onClick={() => goTo('appointments')}
+                      className="text-[10px] font-bold uppercase tracking-widest text-brand-gold hover:text-brand-gold/70 flex items-center gap-1 transition-colors">
+                      View All <ChevronRight size={12} />
+                    </button>
+                  </div>
+                  {appointments.length === 0 ? (
+                    <div className="px-5 py-12 text-center text-xs text-brand-on-surface-variant/50">No appointments scheduled.</div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {appointments.slice(0, 3).map((a: any) => (
+                        <div key={a._id || a.id} className="flex items-center justify-between px-5 py-4">
+                          <div>
+                            <p className="text-xs font-bold text-white">{a.service}</p>
+                            <p className="text-[10px] text-brand-on-surface-variant/65 mt-0.5">{a.date} @ {a.time}</p>
+                          </div>
+                          <StatusBadge status={a.status || 'Pending'} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Quick Actions */}
@@ -272,12 +487,12 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
               <h3 className="font-display text-xs font-black uppercase tracking-widest text-brand-on-surface mb-4">Quick Actions</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  { label: 'New Enquiry',       icon: Clipboard, action: onInquire,                          color: 'text-blue-400' },
+                  { label: 'New Enquiry',       icon: Clipboard, action: () => onInquire(),                  color: 'text-blue-400' },
                   { label: 'My Appointments',   icon: Calendar,  action: () => goTo('appointments'),         color: 'text-purple-400' },
                   { label: 'Browse House Plans', icon: HomeIcon, action: () => onNavigate('/house-plans'),   color: 'text-amber-400' },
                 ].map((a) => (
                   <button key={a.label} onClick={a.action}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-brand-surface-high border border-white/8 hover:border-white/15 hover:bg-white/5 transition-all text-left group">
+                    className="flex items-center gap-3 p-4 rounded-xl bg-brand-surface-high border border-white/8 hover:border-brand-gold/20 hover:bg-white/[0.02] transition-all text-left group">
                     <div className={`${a.color} group-hover:scale-110 transition-transform`}>
                       <a.icon size={18} />
                     </div>
@@ -299,13 +514,13 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
             <div className="p-5 rounded-2xl bg-brand-surface-high border border-white/8 flex items-center gap-5">
               <div className="relative">
                 {editAvatar ? (
-                  <img src={editAvatar} alt="Avatar" className="w-20 h-20 rounded-full object-cover border-2 border-brand-gold/40" />
+                  <img src={editAvatar} alt="Avatar" className="w-20 h-20 rounded-full object-cover border-2 border-brand-gold/40 shadow-lg" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-gold/30 to-brand-gold/10 text-brand-gold font-black font-display text-2xl flex items-center justify-center border-2 border-brand-gold/30">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-gold/30 to-brand-gold/10 text-brand-gold font-black font-display text-2xl flex items-center justify-center border-2 border-brand-gold/30 shadow-lg">
                     {currentUser.name.trim().charAt(0).toUpperCase()}
                   </div>
                 )}
-                <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand-gold flex items-center justify-center cursor-pointer hover:bg-brand-gold/80 transition-colors shadow">
+                <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand-gold flex items-center justify-center cursor-pointer hover:bg-brand-gold/80 transition-colors shadow-md">
                   <Upload size={12} className="text-black" />
                   <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={profileLoading} />
                 </label>
@@ -362,6 +577,277 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
           </div>
         );
 
+      /* ── Saved Plans ── */
+      case 'saved-plans':
+        return (
+          <div className="space-y-5">
+            <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">Saved Plans</h2>
+            {savedPlansLoading ? (
+              <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-brand-gold" /></div>
+            ) : savedPlans.length === 0 ? (
+              <EmptyState icon={BookOpen} title="No Saved Plans" desc="Explore house plans and bookmark them to review later."
+                action={
+                  <button onClick={() => onNavigate('/house-plans')}
+                    className="px-5 py-2.5 bg-brand-gold text-[#0a0f18] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-gold/80 transition-colors">
+                    Browse House Plans
+                  </button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedPlans.map((plan) => (
+                  <div key={plan._id || plan.id} className="glass-panel border border-white/8 hover:border-brand-gold/20 rounded-2xl overflow-hidden flex flex-col justify-between group transition-all duration-300">
+                    <div className="relative h-40 overflow-hidden bg-brand-surface-lowest">
+                      <img src={plan.imageUrl || plan.previewImage || '/images/project-placeholder.jpg'} alt={plan.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute top-3 left-3 bg-brand-gold text-black text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                        {plan.category}
+                      </div>
+                    </div>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-white mb-2 uppercase tracking-wide truncate">{plan.title}</h3>
+                        <p className="text-[10px] text-brand-on-surface-variant/70 leading-relaxed mb-4 line-clamp-2">{plan.description}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <a href={plan.pdfUrl || plan.pdf} target="_blank" rel="noopener noreferrer"
+                            className="py-2 border border-white/10 hover:border-brand-gold/30 rounded-lg text-[9px] font-bold text-center text-white hover:text-brand-gold transition-colors flex items-center justify-center gap-1.5">
+                            <Eye size={11} /> View PDF
+                          </a>
+                          <button onClick={() => onInquire(plan.title)}
+                            className="py-2 bg-brand-gold text-black rounded-lg text-[9px] font-bold text-center hover:bg-brand-gold/90 transition-colors flex items-center justify-center gap-1.5">
+                            Inquire Plan
+                          </button>
+                        </div>
+                        <button onClick={() => handleRemovePlan(plan._id || plan.id)}
+                          className="w-full py-1.5 border border-red-500/10 hover:bg-red-500/10 text-red-400 rounded-lg text-[9px] font-bold transition-all">
+                          Remove Plan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      /* ── Saved Quotes ── */
+      case 'saved-quotes':
+        return (
+          <div className="space-y-5">
+            <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">Saved Quotes</h2>
+            {savedQuotesLoading ? (
+              <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-brand-gold" /></div>
+            ) : savedQuotes.length === 0 ? (
+              <EmptyState icon={FileText} title="No Saved Quotes" desc="Generate and save estimates to your profile from the pricing section."
+                action={
+                  <button onClick={() => onNavigate('/')}
+                    className="px-5 py-2.5 bg-brand-gold text-[#0a0f18] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-gold/80 transition-colors">
+                    Go to Pricing Calculator
+                  </button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {savedQuotes.map((quote) => (
+                  <div key={quote._id} className="glass-panel border border-white/8 hover:border-brand-gold/20 p-5 rounded-2xl flex flex-col justify-between gap-4 group transition-all">
+                    <div>
+                      <div className="flex items-center justify-between gap-2 border-b border-white/5 pb-3">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-brand-gold">{quote.title}</span>
+                        <span className="text-[9px] text-brand-on-surface-variant/40">{new Date(quote.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                      <div className="py-4">
+                        <p className="text-[10px] uppercase tracking-widest text-brand-on-surface-variant/50">Estimated Cost</p>
+                        <p className="font-display text-2xl font-black text-brand-gold mt-1">{formatCurrency(quote.amount)}</p>
+                      </div>
+                      {quote.area && (
+                        <p className="text-[10px] text-brand-on-surface-variant/60 font-mono">Area: {quote.area} sq.ft</p>
+                      )}
+                      {quote.details && (
+                        <p className="text-[10px] text-brand-on-surface-variant/50 italic mt-2 line-clamp-2">{quote.details}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 border-t border-white/5 pt-3">
+                      <button onClick={() => {
+                        const printWindow = window.open('', '_blank');
+                        if (printWindow) {
+                          printWindow.document.write(`
+                            <html>
+                              <head>
+                                <title>NVS Buildcon - Quote Estimate</title>
+                                <style>
+                                  body { font-family: sans-serif; padding: 40px; color: #333; }
+                                  h1 { color: #8a6f2e; border-bottom: 2px solid #c9a84c; padding-bottom: 10px; }
+                                  .row { display: flex; justify-content: space-between; margin: 15px 0; border-bottom: 1px dashed #ddd; padding-bottom: 5px; }
+                                  .total { font-size: 24px; font-weight: bold; color: #8a6f2e; margin-top: 30px; }
+                                </style>
+                              </head>
+                              <body>
+                                <h1>NVS Buildcon - Quotation Estimate</h1>
+                                <div class="row"><strong>Service:</strong> <span>${quote.title}</span></div>
+                                <div class="row"><strong>Date:</strong> <span>${new Date(quote.date).toLocaleDateString('en-IN')}</span></div>
+                                <div class="row"><strong>Built-up Area:</strong> <span>${quote.area || 'N/A'} sq.ft</span></div>
+                                <div class="row"><strong>Price:</strong> <span>${formatCurrency(quote.amount)}</span></div>
+                                <div class="total">Estimated Total: ${formatCurrency(quote.amount)}</div>
+                                <script>window.print();</script>
+                              </body>
+                            </html>
+                          `);
+                          printWindow.document.close();
+                        }
+                      }}
+                        className="flex-1 py-2 border border-white/10 hover:border-brand-gold/30 rounded-lg text-[9px] font-bold text-center text-white hover:text-brand-gold transition-colors flex items-center justify-center gap-1.5">
+                        <Eye size={11} /> Print Quote
+                      </button>
+                      <button onClick={() => handleRemoveQuote(quote._id)}
+                        className="py-2 border border-red-500/10 hover:bg-red-500/10 text-red-400 rounded-lg text-[9px] font-bold px-3 transition-colors">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      /* ── Wishlist ── */
+      case 'wishlist':
+        return (
+          <div className="space-y-5">
+            <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">Wishlist</h2>
+            {wishlistLoading ? (
+              <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-brand-gold" /></div>
+            ) : wishlist.length === 0 ? (
+              <EmptyState icon={Heart} title="Wishlist is Empty" desc="Save projects or gallery photos to keep design inspirations in one place."
+                action={
+                  <button onClick={() => onNavigate('/projects')}
+                    className="px-5 py-2.5 bg-brand-gold text-[#0a0f18] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-gold/80 transition-colors">
+                    Explore Projects
+                  </button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {wishlist.map((item) => (
+                  <div key={item._id || item.refId} className="glass-panel border border-white/8 hover:border-brand-gold/20 rounded-2xl overflow-hidden flex flex-col justify-between group transition-all duration-300">
+                    <div className="relative h-44 overflow-hidden bg-brand-surface-lowest">
+                      <img src={item.imageUrl || '/images/project-placeholder.jpg'} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      {item.category && (
+                        <div className="absolute top-3 left-3 bg-brand-gold text-black text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded">
+                          {item.category}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-5 flex flex-col justify-between flex-1">
+                      <h3 className="text-xs font-bold text-white mb-4 uppercase tracking-wide truncate">{item.title}</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => onInquire(item.title)}
+                          className="flex-1 py-2 bg-brand-gold text-black text-[9px] font-bold rounded-lg text-center hover:bg-brand-gold/90 transition-colors flex items-center justify-center gap-1.5">
+                          Request Quote
+                        </button>
+                        <button onClick={() => handleRemoveWishlist(item.refId)}
+                          className="p-2 border border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex items-center justify-center">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      /* ── Notifications ── */
+      case 'notifications':
+        return (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">Notifications</h2>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <button onClick={handleMarkAllNotificationsRead}
+                  className="text-[10px] font-bold uppercase tracking-widest text-brand-gold hover:text-brand-gold/70 transition-colors">
+                  Mark All as Read
+                </button>
+              )}
+            </div>
+            {notificationsLoading ? (
+              <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-brand-gold" /></div>
+            ) : notifications.length === 0 ? (
+              <EmptyState icon={Bell} title="No Notifications" desc="You are all caught up! Updates regarding quotes, scheduling, and files will show here." />
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((notif) => {
+                  const typeColors: Record<string, string> = {
+                    enquiry: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+                    appointment: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+                    download: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                    general: 'bg-white/5 text-white border-white/10'
+                  };
+                  const Icon = notif.type === 'enquiry' ? Clipboard :
+                               notif.type === 'appointment' ? Calendar :
+                               notif.type === 'download' ? Download : Bell;
+                  return (
+                    <div key={notif._id} className={`p-4 rounded-2xl border ${notif.read ? 'bg-brand-surface-high/50 border-white/5 opacity-65' : 'bg-brand-surface-high border-white/10 shadow-lg'} flex items-start gap-4 transition-all`}>
+                      <div className={`p-2.5 rounded-xl border ${typeColors[notif.type || 'general']}`}>
+                        <Icon size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs ${notif.read ? 'text-brand-on-surface-variant' : 'text-white font-semibold'} leading-relaxed`}>{notif.message}</p>
+                        <p className="text-[9px] text-brand-on-surface-variant/40 mt-1">{new Date(notif.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      {!notif.read && (
+                        <button onClick={() => handleMarkNotificationRead(notif._id)}
+                          className="px-2.5 py-1 text-[8px] font-bold uppercase tracking-widest text-brand-gold border border-brand-gold/20 hover:bg-brand-gold/10 rounded-lg transition-colors">
+                          Mark Read
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+
+      /* ── Downloads ── */
+      case 'downloads':
+        return (
+          <div className="space-y-5">
+            <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">Downloads</h2>
+            {downloadsLoading ? (
+              <div className="flex justify-center py-16"><Loader2 size={24} className="animate-spin text-brand-gold" /></div>
+            ) : downloads.length === 0 ? (
+              <EmptyState icon={Download} title="No Downloads" desc="Approved blueprints, contracts, and estimates shared by your designer will appear here." />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {downloads.map((pdf, idx) => {
+                  const fileName = decodeURIComponent(pdf.split('/').pop() || 'document.pdf');
+                  return (
+                    <div key={idx} className="glass-panel border border-white/8 hover:border-brand-gold/20 p-5 rounded-2xl flex items-center justify-between gap-4 group transition-all">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-3 bg-brand-gold/10 text-brand-gold rounded-xl group-hover:scale-105 transition-transform">
+                          <FileText size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{fileName}</p>
+                          <p className="text-[10px] text-brand-on-surface-variant/50 mt-1">Shared Documents</p>
+                        </div>
+                      </div>
+                      <a href={pdf} target="_blank" rel="noopener noreferrer"
+                        className="p-3 bg-brand-surface-high hover:bg-brand-gold hover:text-black border border-white/10 hover:border-transparent text-white rounded-xl transition-all">
+                        <Download size={14} />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+
       /* ── Enquiries ── */
       case 'enquiries':
         return (
@@ -378,7 +864,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
               <EmptyState icon={Clipboard} title="No Enquiries Yet"
                 desc="Submit a project enquiry to get a custom estimate from our architecture team."
                 action={
-                  <button onClick={onInquire} className="px-5 py-2.5 bg-brand-gold text-[#0a0f18] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-gold/80 transition-colors">
+                  <button onClick={() => onInquire()} className="px-5 py-2.5 bg-brand-gold text-[#0a0f18] text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-brand-gold/80 transition-colors">
                     New Enquiry
                   </button>
                 }
@@ -472,24 +958,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
           </div>
         );
 
-      /* ── Placeholder tabs ── */
-      default: {
-        const meta: Record<string, { icon: React.ElementType; title: string; desc: string }> = {
-          'saved-plans':   { icon: BookOpen, title: 'Saved Plans',   desc: 'Save your favourite house plans and blueprints to review later.' },
-          'saved-quotes':  { icon: FileText, title: 'Saved Quotes',  desc: 'Your saved project cost estimates will appear here.' },
-          'wishlist':      { icon: Heart,    title: 'Wishlist',      desc: 'Wishlist your favourite design inspirations and mood boards.' },
-          'notifications': { icon: Bell,     title: 'Notifications', desc: 'You are all caught up! System notifications will appear here.' },
-          'downloads':     { icon: Download, title: 'Downloads',     desc: 'Your approved PDFs, blueprints, and quote sheets will be available here.' },
-        };
-        const m = meta[tab];
-        if (!m) return null;
-        return (
-          <div className="space-y-5">
-            <h2 className="font-display text-base font-black uppercase tracking-widest text-brand-on-surface">{m.title}</h2>
-            <EmptyState icon={m.icon} title={`No ${m.title} Yet`} desc={m.desc} />
-          </div>
-        );
-      }
+      default:
+        return null;
     }
   };
 
@@ -529,9 +999,16 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
           {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => goTo(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-[11px] font-bold uppercase tracking-widest ${tab === id ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15' : 'text-brand-on-surface-variant hover:bg-white/5 hover:text-white'}`}>
-              <Icon size={14} />
-              {label}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all text-[11px] font-bold uppercase tracking-widest ${tab === id ? 'bg-brand-gold text-[#0a0f18] shadow-md shadow-brand-gold/15' : 'text-brand-on-surface-variant hover:bg-white/5 hover:text-white'}`}>
+              <div className="flex items-center gap-3">
+                <Icon size={14} />
+                <span>{label}</span>
+              </div>
+              {id === 'notifications' && unreadNotificationsCount > 0 && (
+                <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full transition-colors ${tab === id ? 'bg-[#0a0f18] text-brand-gold' : 'bg-red-500 text-white animate-pulse'}`}>
+                  {unreadNotificationsCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>

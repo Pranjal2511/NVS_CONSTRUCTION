@@ -25,6 +25,24 @@ const userSchema = new mongoose.Schema(
     loginAttempts: { type: Number, default: 0, select: false },
     lockUntil: { type: Date, select: false },
     sharedPdfs: [{ type: String }],
+    savedPlans: [{ type: mongoose.Schema.Types.ObjectId, ref: 'HousePlan' }],
+    savedQuotes: [
+      {
+        title: { type: String, required: true },
+        amount: { type: Number, required: true },
+        area: { type: Number },
+        details: { type: String },
+        date: { type: Date, default: Date.now }
+      }
+    ],
+    wishlist: [
+      {
+        title: { type: String, required: true },
+        imageUrl: { type: String },
+        category: { type: String },
+        refId: { type: String }
+      }
+    ],
   },
   { timestamps: true }
 );

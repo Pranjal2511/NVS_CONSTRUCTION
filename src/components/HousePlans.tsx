@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Download, Eye, Search, Compass } from 'lucide-react';
+import { FileText, Download, Eye, Search, Compass, Heart, Sparkles } from 'lucide-react';
 import { BLUEPRINTS_DATA } from '../data';
+import { isAuthenticated } from '../utils/auth';
+import { apiFetch } from '../utils/api';
 
 interface HousePlansProps {
   onInquire: (blueprintTitle?: string) => void;
@@ -10,10 +12,82 @@ interface HousePlansProps {
 export default function HousePlans({ onInquire }: HousePlansProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  const [plans, setPlans] = useState<any[]>(BLUEPRINTS_DATA);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDatabasePlans = async () => {
+      try {
+        const res = await apiFetch('/api/house-plans');
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success && d.data && d.data.length > 0) {
+            setPlans(d.data);
+          }
+        }
+      } catch { /* fallback to static blueprints data */ }
+    };
+
+    const fetchSavedPlans = async () => {
+      if (isAuthenticated()) {
+        try {
+          const res = await apiFetch('/api/user/saved-plans');
+          if (res.ok) {
+            const d = await res.json();
+            if (d.success) {
+              setSavedIds((d.data || []).map((p: any) => p._id || p.id));
+            }
+          }
+        } catch { /* ignore */ }
+      }
+    };
+
+    fetchDatabasePlans();
+    fetchSavedPlans();
+  }, []);
+
+  const toggleSavePlan = async (plan: any) => {
+    if (!isAuthenticated()) {
+      setToastMessage('Please login to save plans');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    const idToToggle = plan._id || plan.id;
+    const isSaved = savedIds.includes(idToToggle);
+
+    try {
+      if (isSaved) {
+        const res = await apiFetch(`/api/user/saved-plans/${idToToggle}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          setSavedIds(prev => prev.filter(id => id !== idToToggle));
+          setToastMessage('Plan removed from saved plans');
+        }
+      } else {
+        const res = await apiFetch('/api/user/saved-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planId: idToToggle })
+        });
+        if (res.ok) {
+          setSavedIds(prev => [...prev, idToToggle]);
+          setToastMessage('Plan saved successfully!');
+        }
+      }
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch {
+      setToastMessage('An error occurred. Try again.');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
 
   const categories = ['All', '20x30', '30x40', '40x60', 'Duplex', 'Villa', 'Commercial'];
 
-  const getPlanCategory = (plan: (typeof BLUEPRINTS_DATA)[number]) => {
+  const getPlanCategory = (plan: any) => {
     const text = `${plan.title} ${plan.category} ${plan.description}`.toLowerCase();
     if (text.includes('commercial') || text.includes('epd')) return 'Commercial';
     if (text.includes('duplex')) return 'Duplex';
@@ -23,7 +97,7 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
     return '40x60';
   };
 
-  const filteredPlans = BLUEPRINTS_DATA.filter((plan) => {
+  const filteredPlans = plans.filter((plan) => {
     const matchesSearch = plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           plan.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           getPlanCategory(plan).toLowerCase().includes(searchQuery.toLowerCase());
@@ -42,6 +116,21 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
 
   return (
     <div className="text-brand-on-surface min-h-screen bg-brand-surface pt-28 pb-20 px-6 md:px-16">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 bg-[#111827] border border-brand-gold/30 text-white text-xs font-bold rounded-full shadow-2xl z-50 flex items-center gap-2"
+          >
+            <Sparkles size={14} className="text-brand-gold" />
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Page Header */}
       <section className="max-w-7xl mx-auto text-center mb-16">
         <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-gold bg-brand-gold/10 rounded-full mb-4">
@@ -116,13 +205,13 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
             <AnimatePresence mode="popLayout">
               {filteredPlans.map((plan, index) => (
                 <motion.div
-                  key={plan.id}
+                  key={plan._id || plan.id}
                   layout
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.4, delay: index * 0.02 }}
-                  className="group flex flex-col justify-between bg-brand-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-brand-gold/20 transition-all duration-500 shadow-xl"
+                  className="group flex flex-col justify-between bg-brand-surface-container/30 border border-white/5 rounded-2xl overflow-hidden hover:border-brand-gold/20 transition-all duration-500 shadow-xl relative"
                 >
                   {/* Thumbnail Header */}
                   <div className="relative h-48 overflow-hidden bg-brand-surface-lowest">
@@ -134,13 +223,28 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
                     <div className="absolute top-4 left-4 glass-gold border border-brand-gold/20 px-2.5 py-1 rounded text-[9px] font-bold font-display uppercase tracking-wider text-brand-gold">
                       {getPlanCategory(plan)}
                     </div>
+                    
+                    {/* Bookmark Toggle Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSavePlan(plan);
+                      }}
+                      className="absolute top-4 right-4 p-2 rounded-full glass-panel border border-white/10 hover:border-brand-gold/40 text-brand-on-surface-variant hover:text-brand-gold transition-all duration-300 z-10"
+                    >
+                      <Heart 
+                        size={14} 
+                        className={savedIds.includes(plan._id || plan.id) ? "fill-red-500 text-red-500" : "text-white"} 
+                      />
+                    </button>
+
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-surface-lowest via-transparent to-transparent opacity-70"></div>
                   </div>
 
                   {/* Body Details */}
                   <div className="p-6 flex-grow flex flex-col justify-between">
                     <div>
-                      <h3 className="font-display text-base font-bold text-white mb-3 group-hover:text-brand-gold transition-colors uppercase tracking-wide">
+                      <h3 className="font-display text-sm font-bold text-white mb-3 group-hover:text-brand-gold transition-colors uppercase tracking-wide truncate">
                         {plan.title}
                       </h3>
                       <p className="font-serif text-xs text-brand-on-surface-variant/85 leading-relaxed mb-6 h-12 overflow-hidden line-clamp-3 font-light">
@@ -154,13 +258,13 @@ export default function HousePlans({ onInquire }: HousePlansProps) {
                         {plan.specs.foundation && (
                           <div className="flex justify-between items-center text-[10px] text-brand-on-surface-variant/80">
                             <span className="font-semibold uppercase tracking-wider">Drawing:</span>
-                            <span className="text-white/90 font-mono">{plan.specs.foundation}</span>
+                            <span className="text-white/90 font-mono truncate max-w-[150px]">{plan.specs.foundation}</span>
                           </div>
                         )}
                         {plan.specs.superstructure && (
                           <div className="flex justify-between items-center text-[10px] text-brand-on-surface-variant/80">
                             <span className="font-semibold uppercase tracking-wider">Details:</span>
-                            <span className="text-white/90 font-mono">{plan.specs.superstructure}</span>
+                            <span className="text-white/90 font-mono truncate max-w-[150px]">{plan.specs.superstructure}</span>
                           </div>
                         )}
                       </div>

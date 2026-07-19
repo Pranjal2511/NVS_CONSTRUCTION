@@ -7,6 +7,8 @@ import Appointment from '../models/Appointment.js';
 import HousePlan from '../models/HousePlan.js';
 import ApiError from '../utils/ApiError.js';
 import { logAudit } from '../services/auditService.js';
+import { createNotification } from '../services/notificationService.js';
+import logger from '../utils/logger.js';
 
 export const getDashboardStats = asyncHandler(async (_req, res) => {
   const [totalUsers, totalEnquiries, totalProjects, totalAppointments, totalHousePlans] =
@@ -71,6 +73,24 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (req.body.sharedPdfs) updates.sharedPdfs = req.body.sharedPdfs;
 
   const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password');
+
+  if (req.body.sharedPdfs && req.body.sharedPdfs.length > (target.sharedPdfs || []).length) {
+    try {
+      const newPdfs = req.body.sharedPdfs.filter(pdf => !(target.sharedPdfs || []).includes(pdf));
+      for (const newPdf of newPdfs) {
+        const name = decodeURIComponent(newPdf.split('/').pop() || 'document.pdf');
+        await createNotification(
+          user._id,
+          `A new file "${name}" is available for download.`,
+          'download',
+          { pdfUrl: newPdf }
+        );
+      }
+    } catch (err) {
+      logger.warn('Failed to create download notification', { message: err.message });
+    }
+  }
+
   await logAudit({ userId: req.user.id, action: 'UPDATE_USER', resource: 'User', resourceId: user.id, req });
   ApiResponse.success(res, 200, 'User updated', user);
 });
