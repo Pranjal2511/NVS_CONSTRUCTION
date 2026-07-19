@@ -5,7 +5,7 @@ import HomeShowcase from '../components/HomeShowcase';
 import HomeProcess from '../components/HomeProcess';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import FAQ from '../components/FAQ';
-import PricingSection from '../components/PricingSection';
+
 import { TESTIMONIALS_DATA } from '../data';
 import { ViewState } from '../types';
 import { motion } from 'motion/react';
@@ -43,7 +43,7 @@ export default function Home({ onViewChange, onInquire }: HomeProps) {
                 NVS Buildcon provides house planning, 2D and 3D design, structural drawings, interior design, and construction support for residential and commercial projects.
               </p>
               <p className="text-xs text-brand-on-surface-variant/70 leading-relaxed">
-                Every detail—from the subterranean foundation rebar grids to bespoke vertical matte-black shading louvers—is calculated, verified, and assembled to millimeter tolerances.
+                Every drawing—from floor plans to column layouts—is prepared with precision to match local guidelines and site requirements.
               </p>
               <div className="pt-4">
                 <button
@@ -154,8 +154,7 @@ export default function Home({ onViewChange, onInquire }: HomeProps) {
         </div>
       </section>
 
-      {/* 4. Pricing and estimator */}
-      <PricingSection onOpenQuoteForm={(service) => onInquire(service)} />
+
 
       {/* 5. Signature Project Showcase */}
       <HomeShowcase onViewChange={onViewChange} />
@@ -165,9 +164,11 @@ export default function Home({ onViewChange, onInquire }: HomeProps) {
         <div className="max-w-7xl mx-auto px-6 md:px-16">
           <BeforeAfterSlider
             beforeImage="/images/WhatsApp Image 2026-06-29 at 13.04.32 (1).jpeg"
+            beforeLabel="Initial Foundation & Structure"
             afterImage="/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg"
-            title="Structural Evolution: Raft Foundation to Twilight Facade"
-            subtitle="Watch our zero-tolerance structural concrete pouring and column layout evolve into a bespoke double-story duplex villa."
+            afterLabel="Completed Duplex Exterior"
+            title="Design Transformation: From Layout to Execution"
+            subtitle="Compare the initial structural planning stages with the final completed residential duplex facade."
           />
         </div>
       </section>
@@ -185,8 +186,8 @@ export default function Home({ onViewChange, onInquire }: HomeProps) {
                 Client Reviews
               </span>
               <h2 className="heading-editorial text-[clamp(2.5rem,5vw,4.5rem)] text-white">
-                Validated<br />
-                <span className="text-brand-gold">Commendations</span>
+                Client<br />
+                <span className="text-brand-gold">Testimonials</span>
               </h2>
             </div>
             <button

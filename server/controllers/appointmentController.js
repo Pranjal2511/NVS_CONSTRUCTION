@@ -5,6 +5,8 @@ import ApiError from '../utils/ApiError.js';
 import { sendAppointmentNotification } from '../services/emailService.js';
 import { createNotification } from '../services/notificationService.js';
 import { logAudit } from '../services/auditService.js';
+import { sendWhatsAppMessage } from '../services/whatsappService.js';
+import logger from '../utils/logger.js';
 
 export const bookAppointment = asyncHandler(async (req, res) => {
   const { name, email, phone, service, notes } = req.body;
@@ -24,15 +26,40 @@ export const bookAppointment = asyncHandler(async (req, res) => {
     userId: req.user?.id,
   });
 
-  await sendAppointmentNotification(appointment);
+  // Send email notification — wrapped so failures don't crash the booking
+  try {
+    await sendAppointmentNotification(appointment);
+  } catch (err) {
+    logger.warn('Failed to send appointment email notification', { message: err.message });
+  }
+
+  // Send WhatsApp message to admin
+  try {
+    const waMessage = `📅 *New Appointment — NVS Buildcon*
+
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Date: ${date}
+Time: ${time}
+Service: ${service}${notes ? `
+Notes: ${notes}` : ''}`;
+    await sendWhatsAppMessage(waMessage);
+  } catch (err) {
+    logger.warn('Failed to send WhatsApp for appointment', { message: err.message });
+  }
 
   if (req.user?.id) {
-    await createNotification(
-      req.user.id,
-      `Consultation booked for ${date} at ${time}`,
-      'appointment',
-      { appointmentId: appointment.id }
-    );
+    try {
+      await createNotification(
+        req.user.id,
+        `Consultation booked for ${date} at ${time}`,
+        'appointment',
+        { appointmentId: appointment.id }
+      );
+    } catch (err) {
+      logger.warn('Failed to create appointment notification', { message: err.message });
+    }
   }
 
   ApiResponse.created(res, 'Consultation requested successfully', { appointment });

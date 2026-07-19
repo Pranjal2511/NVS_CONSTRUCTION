@@ -22,7 +22,7 @@ export default function Footer({ onViewChange, onInquire }: FooterProps) {
               NVS BUILDCON
             </div>
             <p className="text-xs md:text-sm leading-relaxed max-w-sm font-light text-brand-on-surface-variant/80">
-              Smart Planning • Modern Design • Practical Construction. Precision architectural drawings, Vastu-compliant layouts, and turnkey construction services managed with absolute quality control.
+              Smart Planning • Modern Design • Practical Construction. Precision architectural drawings, Vastu-compliant layouts, and project planning support.
             </p>
             <div className="flex gap-4 text-xs text-brand-gold">
               <a href="https://instagram.com/nishant.designs13" target="_blank" rel="noopener noreferrer" className="p-2 bg-white/5 rounded-full hover:text-[#0a0f18] hover:bg-brand-gold transition-all duration-300 cursor-pointer border border-brand-gold/20">

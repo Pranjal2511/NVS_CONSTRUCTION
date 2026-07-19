@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, Phone, Mail, User, Clock, CheckCircle, Database } from 'lucide-react';
 import { Inquiry } from '../types';
-import HCaptchaWidget from './HCaptchaWidget';
+
 import { apiFetch } from '../utils/api';
 
 interface InquiryModalProps {
@@ -22,7 +22,7 @@ export default function InquiryModal({
   const [phone, setPhone] = useState('');
   const [service, setService] = useState('Architectural Design');
   const [message, setMessage] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +67,7 @@ export default function InquiryModal({
           email,
           service,
           blueprintTitle: initialBlueprintTitle || undefined,
-          message: msg,
-          'h-captcha-response': captchaToken
+          message: msg
         })
       });
 
@@ -284,8 +283,7 @@ export default function InquiryModal({
                   </p>
                 )}
 
-                {/* hCaptcha Widget */}
-                <HCaptchaWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+
 
                 <button
                   type="submit"

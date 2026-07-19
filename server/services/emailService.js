@@ -47,23 +47,70 @@ export const sendEmail = async ({ to, subject, text, html }) => {
   return true;
 };
 
-export const sendAdminNotification = async (subject, text) => {
+const buildAdminHtml = (title, rows) => `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a0f18;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0f18;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#111827;border-radius:12px;border:1px solid #c2a649;overflow:hidden;max-width:600px;">
+        <tr><td style="background:linear-gradient(135deg,#c2a649,#e8c96e);padding:24px 32px;">
+          <h1 style="margin:0;color:#0a0f18;font-size:20px;font-weight:bold;">NVS Buildcon</h1>
+          <p style="margin:4px 0 0;color:#0a0f18;font-size:13px;opacity:0.8;">${title}</p>
+        </td></tr>
+        <tr><td style="padding:28px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            ${rows.map(([label, value]) => `
+            <tr>
+              <td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="color:#9ca3af;font-size:11px;text-transform:uppercase;letter-spacing:0.1em;">${label}</span><br/>
+                <span style="color:#ffffff;font-size:14px;font-weight:500;">${value || '—'}</span>
+              </td>
+            </tr>`).join('')}
+          </table>
+        </td></tr>
+        <tr><td style="padding:16px 32px;background:#0a0f18;border-top:1px solid rgba(255,255,255,0.05);">
+          <p style="margin:0;color:#6b7280;font-size:11px;text-align:center;">This is an automated notification from NVS Buildcon system.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+export const sendAdminNotification = async (subject, text, html) => {
   const adminEmail = await getAdminEmail();
-  return sendEmail({ to: adminEmail, subject, text });
+  return sendEmail({ to: adminEmail, subject, text, html });
 };
 
 export const sendEnquiryNotification = async (enquiry) => {
-  await sendAdminNotification(
-    `New Project Enquiry: ${enquiry.name} (${enquiry.service})`,
-    `A new project enquiry has been submitted.\n\nName: ${enquiry.name}\nPhone: ${enquiry.phone}\nEmail: ${enquiry.email}\nService: ${enquiry.service}\nBlueprint: ${enquiry.blueprintTitle || 'N/A'}\nBudget: ${enquiry.budget || 'N/A'}\nMessage: ${enquiry.message}`
-  );
+  const subject = `New Project Enquiry: ${enquiry.name} (${enquiry.service})`;
+  const text = `A new project enquiry has been submitted.\n\nName: ${enquiry.name}\nPhone: ${enquiry.phone}\nEmail: ${enquiry.email}\nService: ${enquiry.service}\nBlueprint: ${enquiry.blueprintTitle || 'N/A'}\nBudget: ${enquiry.budget || 'N/A'}\nMessage: ${enquiry.message}`;
+  const html = buildAdminHtml('New Project Enquiry Received', [
+    ['Name', enquiry.name],
+    ['Phone', enquiry.phone],
+    ['Email', enquiry.email],
+    ['Service', enquiry.service],
+    ['Blueprint', enquiry.blueprintTitle || 'N/A'],
+    ['Budget', enquiry.budget || 'N/A'],
+    ['Message', enquiry.message],
+  ]);
+  await sendAdminNotification(subject, text, html);
 };
 
 export const sendAppointmentNotification = async (appointment) => {
-  await sendAdminNotification(
-    `New Consultation Booking: ${appointment.name}`,
-    `A new consultation has been requested.\n\nName: ${appointment.name}\nEmail: ${appointment.email}\nPhone: ${appointment.phone}\nDate: ${appointment.date || appointment.preferredDate}\nTime: ${appointment.time || appointment.preferredTime}\nService: ${appointment.service}\nNotes: ${appointment.notes || 'N/A'}`
-  );
+  const subject = `New Consultation Booking: ${appointment.name}`;
+  const text = `A new consultation has been requested.\n\nName: ${appointment.name}\nEmail: ${appointment.email}\nPhone: ${appointment.phone}\nDate: ${appointment.date || appointment.preferredDate}\nTime: ${appointment.time || appointment.preferredTime}\nService: ${appointment.service}\nNotes: ${appointment.notes || 'N/A'}`;
+  const html = buildAdminHtml('New Consultation Booking', [
+    ['Name', appointment.name],
+    ['Email', appointment.email],
+    ['Phone', appointment.phone],
+    ['Date', appointment.date || appointment.preferredDate],
+    ['Time', appointment.time || appointment.preferredTime],
+    ['Service', appointment.service],
+    ['Notes', appointment.notes || 'N/A'],
+  ]);
+  await sendAdminNotification(subject, text, html);
 };
 
 export const sendPasswordResetEmail = async (user, resetLink) => {
@@ -85,8 +132,15 @@ export const sendLoginOtpEmail = async (user, otp) => {
 };
 
 export const sendContactFormEmail = async (data) => {
-  await sendAdminNotification(
-    `Contact Form: ${data.name}`,
-    `Name: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone}\nService: ${data.service}\nMessage: ${data.message}`
-  );
+  const subject = `Contact Form: ${data.name}`;
+  const text = `Name: ${data.name}\nEmail: ${data.email}\nPhone: ${data.phone}\nService: ${data.service}\nMessage: ${data.message}`;
+  const html = buildAdminHtml('Contact Form Submission', [
+    ['Name', data.name],
+    ['Email', data.email],
+    ['Phone', data.phone],
+    ['Service', data.service],
+    ['Message', data.message],
+  ]);
+  await sendAdminNotification(subject, text, html);
 };
+

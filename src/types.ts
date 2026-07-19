@@ -117,6 +117,7 @@ export type ViewState =
   | 'gallery'
   | 'services'
   | 'process'
+  | 'calculator'
   | 'about'
   | 'testimonials'
   | 'contact'
@@ -127,7 +128,8 @@ export type ViewState =
   | 'admin-dashboard'
   | 'profile'
   | 'enquiries'
-  | 'settings';
+  | 'settings'
+  | 'reset-password';
 
 export interface Testimonial {
   id?: string;

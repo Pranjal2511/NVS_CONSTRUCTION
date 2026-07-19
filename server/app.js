@@ -36,8 +36,8 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Intercept any /admin/* page requests
-  if (url.startsWith('/admin')) {
+  // Intercept any admin page requests based on secret path
+  if (url.startsWith(env.ADMIN_SECRET_PATH)) {
     const token = req.cookies?.accessToken;
     let user = null;
 
@@ -77,7 +77,7 @@ app.use((req, res, next) => {
             .container {
               max-width: 400px;
               padding: 2rem;
-              border: 1px border #c2a649;
+              border: 1px solid #c2a649;
               background-color: #111827;
               border-radius: 12px;
               box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -125,8 +125,8 @@ app.use((req, res, next) => {
     }
 
     // Case 2: Not authenticated and trying to access restricted admin pages (anything except login)
-    if (!user && url !== '/admin/login') {
-      return res.redirect('/admin/login');
+    if (!user && url !== `${env.ADMIN_SECRET_PATH}/login`) {
+      return res.redirect(`${env.ADMIN_SECRET_PATH}/login`);
     }
   }
 

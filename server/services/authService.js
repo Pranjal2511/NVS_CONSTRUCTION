@@ -11,6 +11,7 @@ import {
 } from '../utils/jwt.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
 import { isEmailTransportConfigured, sendLoginOtpEmail, sendPasswordResetEmail } from './emailService.js';
+import { sendLoginOtpPhone } from './phoneOtpService.js';
 import logger from '../utils/logger.js';
 
 const COOKIE_OPTIONS = {
@@ -20,7 +21,6 @@ const COOKIE_OPTIONS = {
   path: '/',
 };
 
-// Warn on startup if cookie security flags are reduced
 if (!env.IS_PRODUCTION) {
   logger.warn(
     'Auth cookies are set with secure=false and sameSite=lax (IS_PRODUCTION=false). ' +
@@ -30,14 +30,8 @@ if (!env.IS_PRODUCTION) {
 }
 
 export const setAuthCookies = (res, accessToken, refreshToken) => {
-  res.cookie('accessToken', accessToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: 15 * 60 * 1000,
-  });
-  res.cookie('refreshToken', refreshToken, {
-    ...COOKIE_OPTIONS,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie('accessToken', accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
+  res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
 };
 
 export const clearAuthCookies = (res) => {
@@ -47,12 +41,10 @@ export const clearAuthCookies = (res) => {
 
 const handleFailedLogin = async (user) => {
   user.loginAttempts = (user.loginAttempts || 0) + 1;
-
   if (user.loginAttempts >= env.MAX_LOGIN_ATTEMPTS) {
     user.lockUntil = new Date(Date.now() + env.LOCKOUT_DURATION_MS);
     logger.warn('Account locked due to failed login attempts', { email: user.email });
   }
-
   await user.save();
 };
 
@@ -68,12 +60,10 @@ const issueTokens = async (user) => {
   const payload = getTokenPayload(user);
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
-
   user.refreshToken = refreshToken;
   user.lastLogin = new Date();
   user.isVerified = true;
   await user.save();
-
   return { accessToken, refreshToken, user };
 };
 
@@ -86,7 +76,7 @@ const findUserByIdentifier = (identifier) => {
   const normalized = normalizeIdentifier(identifier);
   return User.findOne({
     $or: [{ email: normalized }, { phone: normalized }],
-  }).select('+loginAttempts +lockUntil');
+  }).select('+loginAttempts +lockUntil +password');
 };
 
 export const registerUser = async ({ name, firstName, lastName, email, phone, password, profileImage }) => {
@@ -105,30 +95,55 @@ export const registerUser = async ({ name, firstName, lastName, email, phone, pa
     password: hashed,
     profileImage,
     role: 'user',
+    isVerified: false,
   });
   await sendLoginOtp(normalizedEmail, 'user');
 
   logger.info('User registered', { email: user.email });
-  return {
-    user,
-    otpRequired: true,
-    identifier: user.email,
-    channel: 'email',
-  };
+  return { user, otpRequired: true, identifier: user.email, channel: 'email' };
 };
 
 export const loginUser = async () => {
   throw new ApiError(410, 'Password login has been disabled. Please use OTP login.');
 };
 
+/**
+ * Email + password login. User must have set a password during or after registration.
+ * Unverified users are prompted to verify via OTP before access is granted.
+ */
+export const loginWithPassword = async (email, password) => {
+  const normalizedEmail = normalizeIdentifier(email);
+  const user = await User.findOne({ email: normalizedEmail }).select('+loginAttempts +lockUntil +password');
+
+  if (!user || user.role !== 'user') throw new ApiError(401, 'Invalid email or password');
+  if (user.blocked) throw new ApiError(403, 'Your account has been blocked');
+  if (user.isActive === false) throw new ApiError(403, 'Your account is inactive');
+  if (user.isLocked()) throw new ApiError(423, 'Account temporarily locked. Try again later.');
+  if (!user.password) {
+    throw new ApiError(400, 'This account uses OTP login only. Please use the OTP option.');
+  }
+
+  const valid = await comparePassword(password, user.password);
+  if (!valid) {
+    await handleFailedLogin(user);
+    throw new ApiError(401, 'Invalid email or password');
+  }
+
+  if (!user.isVerified) {
+    await sendLoginOtp(normalizedEmail, 'user');
+    throw new ApiError(403, 'Email not verified. A verification OTP has been sent to your email. Please verify to continue.');
+  }
+
+  await resetLoginAttempts(user);
+  const tokens = await issueTokens(user);
+  logger.info('User logged in with password', { email: user.email });
+  return tokens;
+};
+
 export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
   const normalized = normalizeIdentifier(identifier);
   const channel = getOtpChannel(normalized);
   const user = await findUserByIdentifier(normalized);
-
-  if (channel === 'phone' && env.IS_PRODUCTION) {
-    throw new ApiError(400, 'Phone OTP delivery is not configured. Please use your email address.');
-  }
 
   if (!user || user.role !== expectedRole) {
     logger.warn('OTP requested for invalid account', { identifier: normalized, role: expectedRole });
@@ -168,6 +183,8 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
 
   if (channel === 'email') {
     await sendLoginOtpEmail(user, otp);
+  } else if (channel === 'phone') {
+    await sendLoginOtpPhone(user, normalized, otp);
   }
 
   const includeDevOtp = !env.IS_PRODUCTION && !isEmailTransportConfigured();
@@ -189,9 +206,7 @@ export const verifyLoginOtp = async (identifier, otp, expectedRole = 'user') => 
   const normalized = normalizeIdentifier(identifier);
   const user = await findUserByIdentifier(normalized);
 
-  if (!user || user.role !== expectedRole) {
-    throw new ApiError(401, 'Invalid or expired OTP');
-  }
+  if (!user || user.role !== expectedRole) throw new ApiError(401, 'Invalid or expired OTP');
   if (user.blocked) throw new ApiError(403, 'Your account has been blocked');
   if (user.isActive === false) throw new ApiError(403, 'Your account is inactive');
 
@@ -252,11 +267,17 @@ export const logoutUser = async (userId, res) => {
   clearAuthCookies(res);
 };
 
+export const signOutAllDevices = async (userId, res) => {
+  if (userId) {
+    await User.findByIdAndUpdate(userId, { refreshToken: null });
+    logger.info('All sessions signed out', { userId });
+  }
+  clearAuthCookies(res);
+};
+
 export const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
-  if (!user) {
-    return { message: 'If an account exists, a reset link has been sent.' };
-  }
+  if (!user) return { message: 'If an account exists, a reset link has been sent.' };
 
   const token = crypto.randomBytes(32).toString('hex');
   user.resetToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -286,7 +307,7 @@ export const resetPassword = async (token, newPassword) => {
   await user.save();
 
   logger.info('Password reset completed', { email: user.email });
-  return { message: 'Password reset successfully' };
+  return { message: 'Password reset successfully. Please log in with your new password.' };
 };
 
 export const formatAuthResponse = (tokens) => ({
@@ -298,5 +319,7 @@ export const formatAuthResponse = (tokens) => ({
     email: tokens.user.email,
     phone: tokens.user.phone,
     role: tokens.user.role,
+    avatar: tokens.user.avatar || tokens.user.profileImage || null,
+    isVerified: tokens.user.isVerified,
   },
 });

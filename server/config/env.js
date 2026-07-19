@@ -63,6 +63,11 @@ const env = {
   // CAPTCHA — set whichever service you use; leave blank to disable verification
   HCAPTCHA_SECRET: process.env.HCAPTCHA_SECRET,
   HCAPTCHA_SITE_KEY: process.env.HCAPTCHA_SITE_KEY,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_WHATSAPP_FROM: process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886',
+  ADMIN_WHATSAPP_TO: process.env.ADMIN_WHATSAPP_TO || 'whatsapp:+918009363259',
+  ADMIN_SECRET_PATH: process.env.ADMIN_SECRET_PATH || '/admin',
 };
 
 if (IS_PRODUCTION) {

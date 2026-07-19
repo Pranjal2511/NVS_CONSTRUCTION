@@ -10,13 +10,6 @@ const services = [
   'Construction Services',
 ];
 
-const stats = [
-  { value: '60+', label: 'Projects', desc: 'Residential and commercial work.' },
-  { value: '12', label: 'Cities', desc: 'Active across major North Indian markets.' },
-  { value: '1.5', label: 'Years', desc: 'Planning, design, and site experience.' },
-  { value: '100%', label: 'Support', desc: 'Guidance from drawing to delivery.' },
-];
-
 export default function About() {
   return (
     <div className="text-brand-on-surface bg-brand-surface">
@@ -78,7 +71,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="bg-[#050a12] py-20 px-6 md:px-16 border-y border-white/5 relative">
+      <section className="bg-[#050a12] py-20 px-6 md:px-16 border-t border-white/5 relative">
         <div className="absolute inset-0 blueprint-bg opacity-[0.02] pointer-events-none" />
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
           {[
@@ -112,21 +105,6 @@ export default function About() {
               <h3 className="font-display text-sm font-bold text-white mb-3 uppercase tracking-wider">{card.title}</h3>
               <p className="text-sm text-brand-on-surface-variant/80 leading-relaxed">{card.text}</p>
             </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <section className="py-20 px-6 md:px-16 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-brand-surface-container/30 border border-white/5 rounded-2xl p-7 text-center hover:border-brand-gold/20 transition-all duration-300"
-            >
-              <p className="font-display text-4xl font-bold text-brand-gold mb-2">{stat.value}</p>
-              <h4 className="font-display text-xs font-bold uppercase tracking-wider text-white mb-2">{stat.label}</h4>
-              <p className="text-[11px] text-brand-on-surface-variant/75 leading-relaxed">{stat.desc}</p>
-            </div>
           ))}
         </div>
       </section>

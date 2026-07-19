@@ -63,6 +63,7 @@ export default function Navbar({
     { label: 'Services',     value: 'services',     path: '/services' },
     { label: 'Projects',     value: 'projects',     path: '/projects' },
     { label: 'Gallery',      value: 'gallery',      path: '/gallery' },
+    { label: 'Calculator',   value: 'calculator',   path: '/calculator' },
     { label: 'Contact',      value: 'contact',      path: '/contact' },
   ];
 

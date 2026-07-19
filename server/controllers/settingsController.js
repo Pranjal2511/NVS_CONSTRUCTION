@@ -38,6 +38,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
     'calculatorFormula',
     'planningFeatures',
     'constructionFeatures',
+    'customRates',
   ];
 
   fields.forEach((field) => {

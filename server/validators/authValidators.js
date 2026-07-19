@@ -22,6 +22,11 @@ export const registerValidator = [
 
 export const loginValidator = [emailValidator, body('password').notEmpty()];
 
+export const loginPasswordValidator = [
+  emailValidator,
+  body('password').notEmpty().withMessage('Password is required'),
+];
+
 export const otpRequestValidator = [
   body('identifier')
     .trim()
@@ -56,4 +61,5 @@ export const updateProfileValidator = [
   body('name').optional().trim().isLength({ max: 100 }).escape(),
   body('phone').optional().trim().isLength({ max: 20 }),
   body('password').optional().isLength({ min: 8 }),
+  body('avatar').optional().trim().isURL().withMessage('Avatar must be a valid URL'),
 ];

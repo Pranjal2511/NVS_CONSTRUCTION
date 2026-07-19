@@ -6,25 +6,6 @@ interface HeroProps {
   onInquire: () => void;
 }
 
-function useCountUp(target: number, duration: number = 2000, start: boolean = false) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!start) return;
-    let startTime: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration, start]);
-
-  return count;
-}
-
 const words = ['Designing Homes', 'That Feel', 'Built Around You'];
 const serviceHighlights = [
   'House Plans',
@@ -35,18 +16,12 @@ const serviceHighlights = [
 
 export default function Hero({ onInquire }: HeroProps) {
   const [revealed, setRevealed] = useState(false);
-  const [countersStart, setCountersStart] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  const projects = useCountUp(60, 2200, countersStart);
-  const cities = useCountUp(12, 2000, countersStart);
 
   useEffect(() => {
     const t1 = setTimeout(() => setRevealed(true), 200);
-    const t2 = setTimeout(() => setCountersStart(true), 800);
     return () => {
       clearTimeout(t1);
-      clearTimeout(t2);
     };
   }, []);
 
@@ -144,27 +119,6 @@ export default function Hero({ onInquire }: HeroProps) {
             <MessageCircle size={14} />
             WhatsApp Us
           </button>
-        </div>
-
-        <div
-          className="flex gap-8 md:gap-16 mt-14 opacity-0"
-          style={{ animation: revealed ? 'fadeInUp 0.7s ease 1.05s forwards' : 'none' }}
-        >
-          {[
-            { label: 'Projects Delivered', value: projects, suffix: '+' },
-            { label: 'Cities Served', value: cities, suffix: '' },
-            { label: 'Years Experience', value: '1.5', suffix: '' },
-          ].map((stat) => (
-            <div key={stat.label} className="flex flex-col">
-              <span className="counter-number font-display text-3xl md:text-5xl font-bold text-white leading-none">
-                {stat.value}
-                <span className="text-brand-gold">{stat.suffix}</span>
-              </span>
-              <span className="font-display text-[10px] md:text-xs text-white/42 uppercase tracking-widest mt-2">
-                {stat.label}
-              </span>
-            </div>
-          ))}
         </div>
       </div>
 

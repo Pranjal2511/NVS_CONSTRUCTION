@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Phone, MapPin, Send, CheckCircle, HelpCircle } from 'lucide-react';
-import HCaptchaWidget from './HCaptchaWidget';
+import { Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 import { apiFetch } from '../utils/api';
 
 interface ContactProps {
@@ -14,7 +13,7 @@ export default function Contact({ onInquire }: ContactProps) {
   const [phone, setPhone] = useState('');
   const [service, setService] = useState('Architectural Design');
   const [message, setMessage] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,14 +31,7 @@ export default function Contact({ onInquire }: ContactProps) {
       const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          phone,
-          email,
-          service,
-          message,
-          'h-captcha-response': captchaToken
-        })
+        body: JSON.stringify({ name, phone, email, service, message })
       });
 
       if (!res.ok) {
@@ -162,7 +154,7 @@ export default function Contact({ onInquire }: ContactProps) {
                 Message Received
               </h3>
               <p className="text-sm text-brand-on-surface-variant max-w-md mx-auto mb-8 leading-relaxed">
-                Thank you. Your project inquiry has been successfully transmitted to our engineering team. We will review your site requirements and contact you within 2 hours.
+                Thank you. Your message has been received. Our team will review your requirements and get back to you soon.
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}
@@ -177,7 +169,7 @@ export default function Contact({ onInquire }: ContactProps) {
                 Project Inquiry Form
               </h3>
               <p className="text-xs text-brand-on-surface-variant mb-6">
-                Fill in your details and select a division. Our team will get back to you promptly.
+                Fill in your details and select a service. Our team will get back to you promptly.
               </p>
 
               {error && (
@@ -217,20 +209,20 @@ export default function Contact({ onInquire }: ContactProps) {
                   />
                 </div>
 
-                {/* Division Selection */}
+                {/* Service Selection */}
                 <div>
                   <label className="block text-xs font-bold text-brand-on-surface/60 mb-2 uppercase tracking-widest">
-                    Selected Division
+                    Selected Service
                   </label>
                   <select
                     value={service}
                     onChange={(e) => setService(e.target.value)}
                     className="w-full bg-brand-surface-lowest text-brand-on-surface text-sm px-4 py-3 rounded-lg border border-white/10 focus:border-brand-secondary focus:outline-none transition-all"
                   >
-                    <option value="Architectural Design">Architectural Design Division</option>
-                    <option value="Structural Engineering">Structural Engineering & Construction</option>
-                    <option value="Interior Architecture">Premium Interior Architecture</option>
-                    <option value="Sustainable Consultation">Net-Zero Energy Planning</option>
+                    <option value="Architectural Design">Architectural Design Planning</option>
+                    <option value="Structural Engineering">Structural Design Drawings</option>
+                    <option value="Interior Architecture">Interior & Wardrobe Layouts</option>
+                    <option value="3D Elevation">3D Elevation Rendering</option>
                     <option value="Full Turnkey Build">Full Turnkey Construction</option>
                   </select>
                 </div>
@@ -245,8 +237,6 @@ export default function Contact({ onInquire }: ContactProps) {
                   className="w-full bg-brand-surface-lowest text-brand-on-surface text-sm px-4 py-3 rounded-lg border border-white/10 focus:border-brand-secondary focus:outline-none transition-all placeholder:text-brand-on-surface/30 resize-none"
                 ></textarea>
 
-                {/* hCaptcha Widget */}
-                <HCaptchaWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
 
                 {/* Submit */}
                 <button
@@ -254,7 +244,7 @@ export default function Contact({ onInquire }: ContactProps) {
                   disabled={loading}
                   className="w-full bg-brand-secondary hover:bg-brand-secondary/90 text-brand-on-primary py-3.5 rounded-lg text-xs font-bold font-display uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-brand-secondary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Transmitting...' : 'Transmit Project Specifications'} <Send size={14} />
+                  {loading ? 'Sending...' : 'Send Message'} <Send size={14} />
                 </button>
               </div>
             </form>

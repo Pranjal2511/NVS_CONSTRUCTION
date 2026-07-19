@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Compass, ArrowRight, ArrowLeft, CheckCircle, Send, LayoutGrid, Ruler, Layers, DollarSign, User } from 'lucide-react';
-import HCaptchaWidget from './HCaptchaWidget';
+
 import { apiFetch } from '../utils/api';
 
 interface DesignWizardProps {
@@ -20,7 +20,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -56,8 +56,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
           service: 'Full Turnkey Build',
           blueprintTitle: `Custom ${style} Home Config`,
           budget,
-          message,
-          'h-captcha-response': captchaToken
+          message
         })
       });
 
@@ -417,8 +416,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
                         className="w-full bg-brand-surface-lowest text-brand-on-surface text-sm px-4 py-3 rounded-lg border border-white/10 focus:border-brand-gold focus:outline-none transition-all placeholder:text-brand-on-surface/30 resize-none"
                       ></textarea>
 
-                      {/* hCaptcha Widget */}
-                      <HCaptchaWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
+
                     </div>
                   </motion.div>
                 )}

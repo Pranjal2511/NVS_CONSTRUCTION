@@ -7,54 +7,54 @@ export default function Process() {
   const steps = [
     {
       number: '01',
-      title: 'Site Analysis & Topographical Scanning',
-      tagline: 'Analyzing land physics and environmental orientation.',
+      title: 'Site Analysis & Space Planning',
+      tagline: 'Understanding site conditions and spatial requirements.',
       icon: <Compass size={22} />,
-      desc: 'Our process begins on-site. We deploy digital scanning equipment to record precise elevations, bedrock depth, and sun angles. This guarantees that our blueprints capitalize perfectly on structural footing safety and passive thermal vectors.',
+      desc: 'Our process begins on-site. We evaluate the plot layout, check standard building regulations, and analyze solar orientation. This ensures the floor plan makes optimal use of light, ventilation, and space.',
       bullets: [
-        '3D LiDAR topographical scans with sub-centimeter resolution',
-        'Bedrock analysis and soil load-bearing calculation',
-        'Micro-climate tracking (wind sheer & thermal profiles)',
-        'Neighboring structure envelope and sight-line preservation checks'
+        'Detailed site measurements and level checks',
+        'Zoning regulations and building setback compliance checks',
+        'Vastu orientation and sun path alignment checks',
+        'Adjacent property analysis for privacy and layout planning'
       ]
     },
     {
       number: '02',
-      title: 'Precision CAD drafting & Engineering',
-      tagline: 'Fusing visual elegance with rigid structural physics.',
+      title: 'Architectural & Structural Design',
+      tagline: 'Creating functional layouts and safe structural blueprints.',
       icon: <Scale size={22} />,
-      desc: 'Next, we translate design ideas into highly technical models. Our engineering teams perform stress tests and composite beam simulations using advanced finite-element analysis. We formulate exact structural plans, ensuring code compliance and architectural integrity.',
+      desc: 'Next, we create architectural floor plans and 3D elevations. Once the layouts are approved, our structural engineers design the reinforcement concrete details, foundation plans, and column positions for safe construction.',
       bullets: [
-        'Rigorous finite-element structural loading simulations',
-        'Dual seismic-isolation and soil-damping blueprints',
-        'Triple-glazed low-emissivity framing layouts',
-        'Millimeter-precision carbon-steel moment framing specifications'
+        'Detailed 2D floor plans and furniture layouts',
+        '3D front elevation design with realistic material renderings',
+        'Safe foundation design matching soil load requirements',
+        'RCC column and beam steel detailing'
       ]
     },
     {
       number: '03',
-      title: 'Bespoke Materials Curation',
-      tagline: 'Acquiring high-grade structural components globally.',
+      title: 'Material Selection & Estimates',
+      tagline: 'Choosing finishing materials and preparing clear budget sheets.',
       icon: <Sparkles size={22} />,
-      desc: 'We do not source from generic distributors. NVS maintains a proprietary list of specialized fabricators globally. From bookmatched Italian marble slabs to high-tensile structural steel members, we check every material under strict quality assurance.',
+      desc: 'We assist clients in selecting the right materials for construction and interiors. From brick qualities and cement grades to tiles and plumbing fixtures, we prepare a detailed Bill of Quantities (BOQ) to avoid budget surprises.',
       bullets: [
-        'Grade-A seismic carbon-steel framing curation',
-        'FSC-certified timber composites and sustainable cladding materials',
-        'Low-iron glass sheets with double acoustic sealing layers',
-        'Raw premium-grain structural cement mixing formulas'
+        'Detailed Bill of Quantities (BOQ) for cost estimates',
+        'Guidance on selecting grade-A cement and high-tensile steel',
+        'Selection support for flooring tiles, paints, and interior laminates',
+        'Plumbing, drainage, and electrical wiring conduit routing plans'
       ]
     },
     {
       number: '04',
-      title: 'Zero-Tolerance Physical Build',
-      tagline: 'On-site execution with millimeter accuracy.',
+      title: 'Quality Construction Support',
+      tagline: 'Assisting execution on-site to ensure drawings match.',
       icon: <ShieldAlert size={22} />,
-      desc: 'Our construction sequences are managed entirely by our specialized builders and civil engineers. We employ advanced coordinate modeling equipment on-site to verify structural plumb, alignment, and spacing down to sub-millimeter tolerances.',
+      desc: 'Our design support continues during construction. We coordinate with the site engineers and contractors, providing clarification on structural details and verifying that execution matches the design specifications.',
       bullets: [
-        'Continuous coordinate alignment checks via laser-tracker systems',
-        'Pre-stressed concrete tensioning and high-weld checks',
-        'Thermal envelope airtightness testing and infrared verification',
-        'Unified systems startup: Savant automation & geothermal loops'
+        'Checking foundation excavation and layout alignment on-site',
+        'Verifying column reinforcement steel placement before casting',
+        'Reviewing MEP (Electrical & Plumbing) pipeline routing details',
+        'Final inspection check before interior finishes'
       ]
     }
   ];
@@ -153,7 +153,7 @@ export default function Process() {
 
             <div className="mt-12 pt-6 border-t border-white/5 flex flex-wrap justify-between items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5 text-brand-on-surface-variant/70">
-                <HelpCircle size={13} /> Code Compliant ISO Certification
+                <HelpCircle size={13} /> Standards Compliant Design
               </span>
               <button 
                 onClick={() => setActiveStep((activeStep + 1) % steps.length)}

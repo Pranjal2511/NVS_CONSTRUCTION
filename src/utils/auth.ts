@@ -8,6 +8,8 @@ export interface AuthUser {
   email: string;
   phone?: string;
   role: 'admin' | 'user';
+  avatar?: string | null;
+  isVerified?: boolean;
 }
 
 export interface OtpChallenge {
@@ -71,6 +73,51 @@ export const verifyLoginOtp = async (identifier: string, otp: string, role: 'adm
 
 export const loginUser = async (identifier: string): Promise<OtpChallenge> => sendLoginOtp(identifier, 'user');
 
+export const loginWithPassword = async (email: string, password: string): Promise<AuthUser> => {
+  const res = await apiFetch('/api/auth/login-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Login failed');
+  }
+  const data = await res.json();
+  if (data.user?.role) {
+    storeRole(data.user.role);
+  }
+  return data.user;
+};
+
+export const forgotPasswordRequest = async (email: string): Promise<string> => {
+  const res = await apiFetch('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Forgot password request failed');
+  }
+  const data = await res.json();
+  return data.message || 'If an account exists, a reset link has been sent.';
+};
+
+export const resetPassword = async (token: string, newPassword: string): Promise<string> => {
+  const res = await apiFetch('/api/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Reset password failed');
+  }
+  const data = await res.json();
+  return data.message || 'Password reset successfully';
+};
+
 export const registerUser = async (firstName: string, lastName: string, email: string, phone: string): Promise<OtpChallenge> => {
   const res = await apiFetch('/api/auth/register', {
     method: 'POST',
@@ -108,7 +155,9 @@ export const fetchUserProfile = async (): Promise<AuthUser | null> => {
         name: result.data.name,
         email: result.data.email,
         phone: result.data.phone,
-        role: result.data.role
+        role: result.data.role,
+        avatar: result.data.avatar || result.data.profileImage,
+        isVerified: result.data.isVerified
       };
     }
     clearAuth();
@@ -124,6 +173,16 @@ export const logout = async (): Promise<void> => {
     await apiFetch('/api/auth/logout', { method: 'POST' });
   } catch {
     // Logout network failure is non-critical; local auth state is still cleared below
+  } finally {
+    clearAuth();
+  }
+};
+
+export const signOutAllDevices = async (): Promise<void> => {
+  try {
+    await apiFetch('/api/auth/sign-out-all', { method: 'POST' });
+  } catch {
+    // Ignore network error
   } finally {
     clearAuth();
   }

@@ -28,6 +28,7 @@ export const settingsValidator = [
   body('calculatorFormula').optional().trim(),
   body('planningFeatures').optional().isArray(),
   body('constructionFeatures').optional().isArray(),
+  body('customRates').optional().trim(),
 ];
 
 export const mongoIdParam = [param('id').isMongoId()];

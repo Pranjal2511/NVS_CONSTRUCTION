@@ -5,8 +5,8 @@ const siteSettingsSchema = new mongoose.Schema(
   {
     companyPhone: { type: String, default: '+918009363259' },
     whatsappNumber: { type: String, default: '+918009363259' },
-    emailForNotifications: { type: String, default: 'admin@nvsbuildcon.com' },
-    contactEmail: { type: String, default: 'nishant.designs13@gmail.com' },
+    emailForNotifications: { type: String, default: 'nvsbuildcon@gmail.com' },
+    contactEmail: { type: String, default: 'nvsbuildcon@gmail.com' },
     contactPhone: { type: String, default: '+91 8009363259' },
     address: { type: String, default: 'Lucknow, Uttar Pradesh, India' },
     heroTitle: { type: String, default: 'Engineering Luxury. Crafting Legacy.' },
@@ -52,6 +52,7 @@ const siteSettingsSchema = new mongoose.Schema(
         'Timely Delivery',
       ],
     },
+    customRates: { type: String, default: '' },
   },
   { timestamps: true }
 );

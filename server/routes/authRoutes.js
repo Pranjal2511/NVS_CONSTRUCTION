@@ -11,17 +11,20 @@ import {
   forgotPasswordValidator,
   resetPasswordValidator,
   updateProfileValidator,
+  loginPasswordValidator,
 } from '../validators/authValidators.js';
 
 const router = Router();
 
 router.post('/register', authLimiter, registerValidator, validate, authController.register);
 router.post('/login', authLimiter, loginValidator, validate, authController.login);
+router.post('/login-password', authLimiter, loginPasswordValidator, validate, authController.loginPassword);
 router.post('/admin-login', authLimiter, loginValidator, validate, authController.adminLogin);
 router.post('/send-otp', authLimiter, otpRequestValidator, validate, authController.sendOtp);
 router.post('/verify-otp', authLimiter, otpVerifyValidator, validate, authController.verifyOtp);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
+router.post('/sign-out-all', authenticate, authController.signOutAll);
 router.post('/forgot-password', strictAuthLimiter, forgotPasswordValidator, validate, authController.forgotPasswordHandler);
 router.post('/reset-password', strictAuthLimiter, resetPasswordValidator, validate, authController.resetPasswordHandler);
 router.get('/profile', authenticate, authController.getProfile);

@@ -407,23 +407,23 @@ export const TESTIMONIALS_DATA = [
 
 export const FAQ_DATA = [
   {
-    question: 'What is the typical timeline for a luxury turnkey construction?',
-    answer: 'A premium turnkey residential villa typically takes between 12 to 18 months from site grading to final key handover. This timeline includes 2D architectural drafting, 3D elevation rendering, structural moments calculations, municipal approvals, and high-end interior finishing sequences.'
+    question: 'What is the typical timeline for a turnkey construction project?',
+    answer: 'A standard turnkey residential villa typically takes between 10 to 14 months from site preparation to final handover. This timeline includes architectural planning, 3D elevation, structural drafting, and finishing work.'
   },
   {
     question: 'Do you offer Vastu-compliant architectural planning?',
-    answer: 'Yes. All our floor plans, window locations, staircase directions, and room zoning configurations are drafted in strict alignment with Vastu Shastra principles, without compromising on modern open-layout aesthetics and ventilation dynamics.'
+    answer: 'Yes. We prepare our floor plans, window placement, staircase layouts, and room zoning in alignment with Vastu Shastra principles according to your requirements.'
   },
   {
-    question: 'How do you ensure structural safety and seismic resistance?',
-    answer: 'We deploy advanced bedrock drilling tests and soil load-bearing calculations. Our structural engineering division drafts customized raft foundations and seismic-isolating reinforcement steel grids (Fe 550/600 grade). Every column and beam is modeled under finite-element shearing stress simulations.'
+    question: 'How do you ensure structural safety and stability?',
+    answer: 'We design all projects in accordance with standard civil engineering principles. Our structural engineers prepare detailed drawings for foundations, columns, and beams to ensure safety and stability.'
   },
   {
     question: 'Can I customize the interior finishes and materials?',
-    answer: 'Absolutely. We operate a bespoke materials curation service. Clients are presented with premium design options including bookmatched Italian marble slabs, handcrafted acoustic wooden baffles, low-iron structural glass sheets, and smart climate coves. We handle global procurement and zero-tolerance installation.'
+    answer: 'Yes. We assist clients in choosing finishes, flooring, lighting, and wardrobe layouts. We provide recommendations and options that fit your budget and taste.'
   },
   {
     question: 'What is your pricing model for design and drafting services?',
-    answer: 'Our architectural planning and 2D layout services start at ₹3/sq.ft. Complete turnkey packages (architectural, structural, MEP, 3D rendering, and execution) are custom-quoted based on material specs, structural complexity, and site location. All pricing is transparent with no hidden overheads.'
+    answer: 'Our architectural planning and 2D layout services start at ₹3/sq.ft. Structural design, MEP drawings, and 3D elevations are priced competitively. Complete design packages are quoted based on the size and scope of your plot.'
   }
 ];

@@ -6,10 +6,12 @@ import { hashPassword } from '../utils/password.js';
 import {
   registerUser,
   loginUser,
+  loginWithPassword,
   sendLoginOtp,
   verifyLoginOtp,
   refreshAccessToken,
   logoutUser,
+  signOutAllDevices,
   forgotPassword,
   resetPassword,
   setAuthCookies,
@@ -21,7 +23,7 @@ export const register = asyncHandler(async (req, res) => {
   const result = await registerUser(req.body);
   res.status(201).json({
     success: true,
-    message: 'Account created. Verify the OTP sent to continue.',
+    message: 'Account created. Verify the OTP sent to your email to continue.',
     data: result,
   });
 });
@@ -32,6 +34,13 @@ export const login = asyncHandler(async (req, res) => {
 
 export const adminLogin = asyncHandler(async (req, res) => {
   await loginUser();
+});
+
+// Email + password login for users who set a password
+export const loginPassword = asyncHandler(async (req, res) => {
+  const tokens = await loginWithPassword(req.body.email, req.body.password);
+  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+  res.json(formatAuthResponse(tokens));
 });
 
 export const sendOtp = asyncHandler(async (req, res) => {
@@ -62,6 +71,11 @@ export const logout = asyncHandler(async (req, res) => {
   ApiResponse.success(res, 200, 'Logged out successfully');
 });
 
+export const signOutAll = asyncHandler(async (req, res) => {
+  await signOutAllDevices(req.user?.id, res);
+  ApiResponse.success(res, 200, 'Signed out from all devices successfully');
+});
+
 export const forgotPasswordHandler = asyncHandler(async (req, res) => {
   const result = await forgotPassword(req.body.email);
   ApiResponse.success(res, 200, result.message);
@@ -86,6 +100,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (req.body.name) user.name = req.body.name;
   if (req.body.phone) user.phone = req.body.phone;
   if (req.body.password) user.password = await hashPassword(req.body.password);
+  if (req.body.avatar) user.avatar = req.body.avatar;
 
   await user.save();
   ApiResponse.success(res, 200, 'Profile updated', user);
