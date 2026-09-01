@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
-app.use(generalLimiter);
+app.use('/api', generalLimiter);
 
 // Protect admin pages in browser requests
 app.use((req, res, next) => {
