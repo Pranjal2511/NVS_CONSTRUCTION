@@ -2,19 +2,39 @@ import nodemailer from 'nodemailer';
 import env from '../config/env.js';
 import SiteSettings from '../models/SiteSettings.js';
 import logger from '../utils/logger.js';
+import dns from 'dns';
+
+// Force Node to resolve IPv4 addresses first (fixes ENETUNREACH IPv6 issue on cloud providers like Render)
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 let transporter = null;
 
 const getTransporter = () => {
   if (transporter) return transporter;
-  if (!env.SMTP_HOST || !env.SMTP_USER || !env.SMTP_PASS) return null;
+  if (!env.SMTP_USER || !env.SMTP_PASS) return null;
 
-  transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    secure: env.SMTP_SECURE,
-    auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-  });
+  const isGmail = env.SMTP_HOST?.includes('gmail') || env.SMTP_USER?.includes('@gmail.com');
+
+  if (isGmail) {
+    // Gmail-optimized configuration (uses port 465 SSL directly, avoiding port 587 timeouts on cloud hosts)
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: env.SMTP_USER,
+        pass: env.SMTP_PASS,
+      },
+    });
+  } else {
+    transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT || 465,
+      secure: env.SMTP_SECURE ?? true,
+      family: 4,
+      auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+    });
+  }
   return transporter;
 };
 
