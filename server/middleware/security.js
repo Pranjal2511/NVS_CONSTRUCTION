@@ -17,17 +17,41 @@ export const helmetMiddleware = helmet({
   crossOriginEmbedderPolicy: false,
 });
 
+// Helper to clean and split comma-separated origin strings
+const parseAllowedOrigins = () => {
+  const raw = [env.CLIENT_URL, env.APP_URL].filter(Boolean).join(',');
+  return raw
+    .split(',')
+    .map((url) => url.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+};
+
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // In non-production mode allow all origins (local dev, CI, preview)
+    // Allow non-browser requests (e.g. server-to-server, mobile, curl) or if permissive mode is enabled
     if (!origin || !env.IS_PRODUCTION) {
       return callback(null, true);
     }
-    const allowed = [env.CLIENT_URL, env.APP_URL].filter(Boolean);
-    if (allowed.includes(origin)) {
+
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    const allowed = parseAllowedOrigins();
+
+    // Check direct matches
+    if (allowed.includes(normalizedOrigin)) {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+
+    // Allow Vercel preview deployments for the project
+    if (/^https:\/\/nvs-construction[a-zA-Z0-9-]*\.vercel\.app$/.test(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    // Allow localhost/127.0.0.1 for local dev even if IS_PRODUCTION flag is accidentally set
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
