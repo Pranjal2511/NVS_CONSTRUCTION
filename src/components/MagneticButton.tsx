@@ -37,7 +37,7 @@ export default function MagneticButton({ children, variant = 'default', classNam
   };
 
   return (
-    <motion.button
+    <motion.button style={{display:"hidden"}}
       ref={ref}
       onMouseMove={handleMouse}
       onMouseLeave={reset}

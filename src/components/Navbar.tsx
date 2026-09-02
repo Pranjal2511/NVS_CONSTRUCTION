@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Sun, Moon, ChevronRight, User, ShieldCheck, LogIn, LogOut, Settings } from 'lucide-react';
+import { Menu, X, ChevronRight, User, ShieldCheck, LogIn, LogOut, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ViewState } from '../types';
 import { AuthUser } from '../utils/auth';
@@ -25,15 +25,7 @@ export default function Navbar({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const loginDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Persist & apply theme from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('theme') || 'dark';
-    setTheme(saved as 'dark' | 'light');
-    document.documentElement.classList.toggle('light', saved === 'light');
-  }, []);
 
   // Show solid background after scrolling 60px
   useEffect(() => {
@@ -52,13 +44,6 @@ export default function Navbar({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.classList.toggle('light', next === 'light');
-    localStorage.setItem('theme', next);
-  };
 
   const navLinks: { label: string; value: ViewState; path: string }[] = [
     { label: 'Home',         value: 'home',         path: '/' },
@@ -130,14 +115,6 @@ export default function Navbar({
         {/* ── Right Actions ─────────────────────────────────────────── */}
         <div className="flex items-center gap-2.5">
 
-          {/* Theme toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-lg border border-brand-gold/20 bg-brand-surface-high text-brand-gold hover:bg-brand-gold hover:text-[#0a0f18] transition-all duration-200 shadow-sm"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-          </button>
 
           {/* Book Consultation CTA — desktop */}
           <button

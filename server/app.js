@@ -7,7 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import env from './config/env.js';
 import { helmetMiddleware, corsMiddleware } from './middleware/security.js';
-import { generalLimiter } from './middleware/rateLimiter.js';
 import apiRoutes from './routes/index.js';
 import { verifyAccessToken } from './utils/jwt.js';
 
@@ -32,7 +31,6 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(hpp());
-app.use('/api', generalLimiter);
 
 // Protect admin pages in browser requests
 app.use((req, res, next) => {

@@ -5,7 +5,6 @@ import { Helmet } from 'react-helmet-async';
 import { Loader2 } from 'lucide-react';
 
 import Navbar from './components/Navbar';
-import Concierge from './components/Concierge';
 import FloatingLeadBar from './components/FloatingLeadBar';
 import BookConsultationModal from './components/BookConsultationModal';
 import CallbackModal from './components/CallbackModal';
@@ -218,8 +217,6 @@ export default function App() {
         />
       )}
 
-      {/* Floating Concierge Sidebar — hidden on portal routes */}
-      {!isPortalRoute && <Concierge onInquire={handleInquire} />}
 
       {/* Interactive Main Body Content with Framer Motion Page transitions */}
       <main className="flex-grow">

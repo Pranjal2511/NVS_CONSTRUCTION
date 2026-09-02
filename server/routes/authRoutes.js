@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as authController from '../controllers/authController.js';
 import { validate } from '../middleware/validate.js';
 import { authenticate } from '../middleware/auth.js';
-import { authLimiter, strictAuthLimiter } from '../middleware/rateLimiter.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 import {
   registerValidator,
   loginValidator,
@@ -25,8 +25,8 @@ router.post('/verify-otp', authLimiter, otpVerifyValidator, validate, authContro
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 router.post('/sign-out-all', authenticate, authController.signOutAll);
-router.post('/forgot-password', strictAuthLimiter, forgotPasswordValidator, validate, authController.forgotPasswordHandler);
-router.post('/reset-password', strictAuthLimiter, resetPasswordValidator, validate, authController.resetPasswordHandler);
+router.post('/forgot-password', authLimiter, forgotPasswordValidator, validate, authController.forgotPasswordHandler);
+router.post('/reset-password', authLimiter, resetPasswordValidator, validate, authController.resetPasswordHandler);
 router.get('/profile', authenticate, authController.getProfile);
 router.put('/profile', authenticate, updateProfileValidator, validate, authController.updateProfile);
 
