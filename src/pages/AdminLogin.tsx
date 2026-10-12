@@ -72,8 +72,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
               <div className="flex items-start gap-2.5 p-3.5 bg-brand-gold/10 border border-brand-gold/20 rounded-xl text-brand-gold text-xs">
                 <ShieldCheck size={14} className="shrink-0 mt-0.5" />
                 <span>
-                  Enter the 6-digit OTP sent to the admin {otpChannel === 'phone' ? 'phone' : 'email'}.
-                  {devOtp ? <strong className="block mt-1">Local dev OTP: {devOtp}</strong> : null}
+                  Please enter the 6-digit OTP sent to <strong className="text-white">{otpSentTo}</strong>. Valid for 5 minutes.
                 </span>
               </div>
             )}

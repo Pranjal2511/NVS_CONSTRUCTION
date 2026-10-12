@@ -41,8 +41,8 @@ export const corsMiddleware = cors({
       return callback(null, true);
     }
 
-    // Allow Vercel preview deployments for the project
-    if (/^https:\/\/nvs-construction[a-zA-Z0-9-]*\.vercel\.app$/.test(normalizedOrigin)) {
+    // Allow any Vercel deployment domain for the project
+    if (/^https:\/\/[a-zA-Z0-9-_.]+\.vercel\.app$/.test(normalizedOrigin)) {
       return callback(null, true);
     }
 

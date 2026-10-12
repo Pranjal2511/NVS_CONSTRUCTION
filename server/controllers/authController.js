@@ -29,11 +29,16 @@ export const register = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
-  await loginUser();
+  const tokens = await loginWithPassword(req.body.email, req.body.password, 'user');
+  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+  res.json(formatAuthResponse(tokens));
 });
 
 export const adminLogin = asyncHandler(async (req, res) => {
-  await loginUser();
+  const tokens = await loginWithPassword(req.body.email, req.body.password, 'admin');
+  setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+  await logAudit({ userId: tokens.user._id, action: 'ADMIN_LOGIN', req });
+  res.json(formatAuthResponse(tokens));
 });
 
 // Email + password login for users who set a password

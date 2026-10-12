@@ -32,7 +32,16 @@ export const otpRequestValidator = [
     .trim()
     .notEmpty()
     .isLength({ max: 120 })
-    .withMessage('Email or phone number is required'),
+    .withMessage('Email address or phone number is required')
+    .custom((val) => {
+      if (val.includes('@')) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(val)) {
+          throw new Error('Please enter a valid email address');
+        }
+      }
+      return true;
+    }),
   body('role').optional().isIn(['user', 'admin']),
 ];
 

@@ -17,7 +17,7 @@ export interface OtpChallenge {
   identifier: string;
   channel: 'email' | 'phone';
   expiresInSeconds: number;
-  devOtp?: string;
+  cooldownSeconds?: number;
 }
 
 /**
@@ -30,6 +30,7 @@ export const storeRole = (role: 'admin' | 'user') => {
 
 export const clearAuth = () => {
   localStorage.removeItem('authRole');
+  localStorage.removeItem('authToken');
 };
 
 export const getRole = (): 'admin' | 'user' | null => {
@@ -65,6 +66,9 @@ export const verifyLoginOtp = async (identifier: string, otp: string, role: 'adm
     throw new Error(errorData.message || 'OTP verification failed');
   }
   const data = await res.json();
+  if (data.token || data.accessToken) {
+    localStorage.setItem('authToken', data.token || data.accessToken);
+  }
   if (data.user?.role) {
     storeRole(data.user.role);
   }
@@ -84,6 +88,9 @@ export const loginWithPassword = async (email: string, password: string): Promis
     throw new Error(errorData.message || 'Login failed');
   }
   const data = await res.json();
+  if (data.token || data.accessToken) {
+    localStorage.setItem('authToken', data.token || data.accessToken);
+  }
   if (data.user?.role) {
     storeRole(data.user.role);
   }

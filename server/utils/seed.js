@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -41,15 +42,35 @@ export const seedDatabase = async () => {
 
     const adminCount = await User.countDocuments({ role: 'admin' });
     if (adminCount === 0) {
-      const hashedPassword = await bcrypt.hash('AdminPassword123!', env.BCRYPT_ROUNDS);
-      await User.create({
-        name: 'NVS Admin',
-        email: 'admin@nvsbuildcon.com',
-        phone: '+918009363259',
-        password: hashedPassword,
-        role: 'admin',
-      });
-      logger.info('Seeded default admin: admin@nvsbuildcon.com');
+      const seedPassword = process.env.ADMIN_SEED_PASSWORD;
+      if (!seedPassword || seedPassword === 'AdminPassword123!' || seedPassword.length < 8) {
+        if (env.IS_PRODUCTION) {
+          logger.error('CRITICAL: Admin account cannot be seeded in production without a secure ADMIN_SEED_PASSWORD environment variable (min 8 chars). Skipping admin creation.');
+        } else {
+          const tempPassword = crypto.randomBytes(12).toString('base64url');
+          const hashedPassword = await bcrypt.hash(tempPassword, env.BCRYPT_ROUNDS);
+          await User.create({
+            name: 'NVS Admin',
+            email: 'admin@nvsbuildcon.com',
+            phone: '+918009363259',
+            password: hashedPassword,
+            role: 'admin',
+            isVerified: true,
+          });
+          logger.warn(`Generated random temporary dev admin password: ${tempPassword}. Please change immediately or set ADMIN_SEED_PASSWORD.`);
+        }
+      } else {
+        const hashedPassword = await bcrypt.hash(seedPassword, env.BCRYPT_ROUNDS);
+        await User.create({
+          name: 'NVS Admin',
+          email: 'admin@nvsbuildcon.com',
+          phone: '+918009363259',
+          password: hashedPassword,
+          role: 'admin',
+          isVerified: true,
+        });
+        logger.info('Seeded admin account from ADMIN_SEED_PASSWORD environment variable');
+      }
     }
 
     const seedData = loadSeedData();

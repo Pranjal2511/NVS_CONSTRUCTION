@@ -97,10 +97,25 @@ export const registerUser = async ({ name, firstName, lastName, email, phone, pa
     role: 'user',
     isVerified: false,
   });
-  await sendLoginOtp(normalizedEmail, 'user');
 
-  logger.info('User registered', { email: user.email });
-  return { user, otpRequired: true, identifier: user.email, channel: 'email' };
+  // Send real verification OTP to email
+  try {
+    const otpResult = await sendLoginOtp(normalizedEmail, 'user');
+    logger.info('User registered and verification OTP sent', { email: user.email });
+    return {
+      user,
+      otpRequired: true,
+      identifier: user.email,
+      channel: 'email',
+      cooldownSeconds: 60,
+      expiresInSeconds: 300,
+    };
+  } catch (otpErr) {
+    // If sending verification OTP fails, roll back the newly created user so they can try again once email is fixed
+    await User.findByIdAndDelete(user._id);
+    logger.error('Failed to send registration OTP email', { email: normalizedEmail, error: otpErr.message });
+    throw new ApiError(500, `Registration failed: Could not deliver verification email to ${normalizedEmail}. ${otpErr.message}`);
+  }
 };
 
 export const loginUser = async () => {
@@ -109,13 +124,13 @@ export const loginUser = async () => {
 
 /**
  * Email + password login. User must have set a password during or after registration.
- * Unverified users are prompted to verify via OTP before access is granted.
+ * Supports both 'user' and 'admin' roles with brute-force lockout safeguards.
  */
-export const loginWithPassword = async (email, password) => {
+export const loginWithPassword = async (email, password, expectedRole = 'user') => {
   const normalizedEmail = normalizeIdentifier(email);
   const user = await User.findOne({ email: normalizedEmail }).select('+loginAttempts +lockUntil +password');
 
-  if (!user || user.role !== 'user') throw new ApiError(401, 'Invalid email or password');
+  if (!user || user.role !== expectedRole) throw new ApiError(401, 'Invalid email or password');
   if (user.blocked) throw new ApiError(403, 'Your account has been blocked');
   if (user.isActive === false) throw new ApiError(403, 'Your account is inactive');
   if (user.isLocked()) throw new ApiError(423, 'Account temporarily locked. Try again later.');
@@ -130,13 +145,13 @@ export const loginWithPassword = async (email, password) => {
   }
 
   if (!user.isVerified) {
-    await sendLoginOtp(normalizedEmail, 'user');
+    await sendLoginOtp(normalizedEmail, expectedRole);
     throw new ApiError(403, 'Email not verified. A verification OTP has been sent to your email. Please verify to continue.');
   }
 
   await resetLoginAttempts(user);
   const tokens = await issueTokens(user);
-  logger.info('User logged in with password', { email: user.email });
+  logger.info(`${expectedRole === 'admin' ? 'Admin' : 'User'} logged in with password`, { email: user.email });
   return tokens;
 };
 
@@ -147,7 +162,7 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
 
   if (!user || user.role !== expectedRole) {
     logger.warn('OTP requested for invalid account', { identifier: normalized, role: expectedRole });
-    throw new ApiError(401, 'No matching account found for this login type');
+    throw new ApiError(401, 'No matching account found for this login type. Please check your email or register a new account.');
   }
 
   if (user.blocked) throw new ApiError(403, 'Your account has been blocked');
@@ -157,11 +172,12 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
   const existingOtp = await Otp.findOne({ identifier: normalized, role: expectedRole }).select('+otpHash');
   if (existingOtp) {
     const secondsSinceLastSend = (Date.now() - existingOtp.lastSentAt.getTime()) / 1000;
-    if (secondsSinceLastSend < 30) {
-      throw new ApiError(429, `Please wait ${Math.ceil(30 - secondsSinceLastSend)} seconds before requesting another OTP`);
+    if (secondsSinceLastSend < 60) {
+      const waitSec = Math.ceil(60 - secondsSinceLastSend);
+      throw new ApiError(429, `Please wait ${waitSec} seconds before requesting another OTP`);
     }
-    if (existingOtp.resendCount >= 3) {
-      throw new ApiError(429, 'Maximum OTP resend limit reached. Try again after a few minutes.');
+    if (existingOtp.resendCount >= 5) {
+      throw new ApiError(429, 'Maximum OTP resend limit reached. Try again after 5 minutes.');
     }
   }
 
@@ -178,27 +194,31 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
       lastSentAt: new Date(),
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 
-  if (channel === 'email') {
-    await sendLoginOtpEmail(user, otp);
-  } else if (channel === 'phone') {
-    await sendLoginOtpPhone(user, normalized, otp);
+  // Deliver real OTP via email or phone
+  try {
+    if (channel === 'email') {
+      await sendLoginOtpEmail(user, otp);
+    } else if (channel === 'phone') {
+      await sendLoginOtpPhone(user, normalized, otp);
+    }
+  } catch (sendErr) {
+    // Invalidate the unreached OTP from DB so user isn't stuck with unreachable code
+    await Otp.deleteMany({ identifier: normalized, role: expectedRole });
+    logger.error('Failed to deliver OTP', { identifier: normalized, error: sendErr.message });
+    throw new ApiError(500, `Failed to send OTP: ${sendErr.message}`);
   }
 
-  const includeDevOtp = !env.IS_PRODUCTION && !isEmailTransportConfigured();
-
-  if (!env.IS_PRODUCTION) {
-    logger.info('Development OTP generated', { identifier: normalized, role: expectedRole, otp });
-  }
+  logger.info('OTP successfully sent', { identifier: normalized, role: expectedRole, channel });
 
   return {
     otpRequired: true,
     identifier: normalized,
     channel,
+    cooldownSeconds: 60,
     expiresInSeconds: 300,
-    ...(includeDevOtp ? { devOtp: otp } : {}),
   };
 };
 
@@ -285,7 +305,18 @@ export const forgotPassword = async (email) => {
   await user.save();
 
   const resetLink = `${env.CLIENT_URL}/reset-password?token=${token}`;
-  await sendPasswordResetEmail(user, resetLink);
+  try {
+    await sendPasswordResetEmail(user, resetLink);
+  } catch (sendErr) {
+    if (env.IS_PRODUCTION) {
+      throw sendErr;
+    }
+    logger.warn('Password reset email delivery failed in dev mode', {
+      email,
+      error: sendErr.message,
+      resetLink,
+    });
+  }
 
   logger.info('Password reset requested', { email });
   return { message: 'If an account exists, a reset link has been sent.' };
@@ -312,7 +343,7 @@ export const resetPassword = async (token, newPassword) => {
 
 export const formatAuthResponse = (tokens) => ({
   token: tokens.accessToken,
-  refreshToken: tokens.refreshToken,
+  accessToken: tokens.accessToken,
   user: {
     id: tokens.user.id || tokens.user._id?.toString(),
     name: tokens.user.name,

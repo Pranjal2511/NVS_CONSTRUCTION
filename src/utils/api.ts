@@ -6,8 +6,16 @@ export const apiUrl = (path: string) => {
 };
 
 export const apiFetch = (path: string, init?: RequestInit) => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const headers = new Headers(init?.headers || {});
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   return fetch(apiUrl(path), {
     credentials: 'include',
     ...init,
+    headers,
   });
 };

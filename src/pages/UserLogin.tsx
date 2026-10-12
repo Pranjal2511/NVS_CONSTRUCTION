@@ -22,11 +22,20 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
   const [otp, setOtp] = useState('');
   const [otpSentTo, setOtpSentTo] = useState('');
   const [otpChannel, setOtpChannel] = useState<'email' | 'phone' | null>(null);
-  const [devOtp, setDevOtp] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const resetForm = () => {
     setFirstName('');
@@ -38,7 +47,7 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
     setOtp('');
     setOtpSentTo('');
     setOtpChannel(null);
-    setDevOtp('');
+    setCooldown(0);
     setError(null);
     setSuccessMsg(null);
   };
@@ -59,14 +68,46 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
     }
   };
 
+  const handleResendOtp = async () => {
+    if (cooldown > 0 || resending || !otpSentTo) return;
+    setError(null);
+    setSuccessMsg(null);
+    setResending(true);
+    try {
+      const challenge = await loginUser(otpSentTo);
+      setCooldown(challenge.cooldownSeconds || 60);
+      setSuccessMsg(`A new 6-digit verification code has been sent to ${otpSentTo}.`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resend OTP.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
+
+    // Front-end email validation
+    if (!otpSentTo && !forgotPasswordMode) {
+      const targetEmail = isRegister ? email : identifier;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!targetEmail || !emailRegex.test(targetEmail.trim())) {
+        setError('Please enter a valid email address (e.g. name@gmail.com)');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       if (otpSentTo) {
+        if (otp.length !== 6) {
+          setError('Please enter the full 6-digit OTP.');
+          setLoading(false);
+          return;
+        }
         await verifyLoginOtp(otpSentTo, otp, 'user');
         onLoginSuccess();
         return;
@@ -76,7 +117,8 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
         const challenge = await registerUser(firstName, lastName, email, phone);
         setOtpSentTo(challenge.identifier);
         setOtpChannel(challenge.channel);
-        setDevOtp(challenge.devOtp || '');
+        setCooldown(challenge.cooldownSeconds || 60);
+        setSuccessMsg(`Verification code sent to ${challenge.identifier}. Check your inbox or spam folder.`);
       } else if (loginMethod === 'password') {
         await loginWithPassword(identifier, password);
         onLoginSuccess();
@@ -84,7 +126,8 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
         const challenge = await loginUser(identifier);
         setOtpSentTo(challenge.identifier);
         setOtpChannel(challenge.channel);
-        setDevOtp(challenge.devOtp || '');
+        setCooldown(challenge.cooldownSeconds || 60);
+        setSuccessMsg(`Verification code sent to ${challenge.identifier}. Check your inbox or spam folder.`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Authentication failed.';
@@ -93,6 +136,7 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
       if (msg.includes('verification OTP has been sent')) {
         setOtpSentTo(identifier);
         setOtpChannel('email');
+        setCooldown(60);
       }
     } finally {
       setLoading(false);
@@ -169,8 +213,7 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
               <div className="flex items-start gap-2.5 p-3.5 bg-brand-gold/10 border border-brand-gold/20 rounded-xl text-brand-gold text-xs">
                 <ShieldCheck size={14} className="shrink-0 mt-0.5" />
                 <span>
-                  Enter the 6-digit OTP sent to your {otpChannel === 'phone' ? 'phone' : 'email'}.
-                  {devOtp ? <strong className="block mt-1">Local dev OTP: {devOtp}</strong> : null}
+                  Please enter the 6-digit verification code sent to <strong className="text-white">{otpSentTo}</strong>. Valid for 5 minutes.
                 </span>
               </div>
             )}
@@ -226,20 +269,33 @@ export default function UserLogin({ onLoginSuccess }: UserLoginProps) {
                 />
               </div>
             ) : (
-              <div className="relative">
-                <span className="absolute inset-y-0 left-3.5 flex items-center text-brand-on-surface-variant/40 pointer-events-none">
-                  <ShieldCheck size={14} />
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="6-digit OTP"
-                  required
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className={inputClass}
-                />
+              <div className="space-y-2">
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3.5 flex items-center text-brand-on-surface-variant/40 pointer-events-none">
+                    <ShieldCheck size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Enter 6-digit OTP"
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-full pl-10 pr-4 py-3 text-center tracking-[0.3em] font-mono text-base rounded-xl bg-brand-surface-container border border-white/8 focus:outline-none focus:ring-2 focus:ring-brand-gold/40 focus:border-brand-gold/40 text-brand-on-surface placeholder:tracking-normal placeholder:font-sans placeholder:text-sm placeholder:text-brand-on-surface/25 transition-all"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs px-1">
+                  <span className="text-brand-on-surface-variant/70 text-[11px]">Didn't get the code?</span>
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={cooldown > 0 || resending}
+                    className="text-brand-gold font-bold text-[11px] disabled:text-brand-on-surface-variant/40 disabled:cursor-not-allowed hover:underline transition-colors"
+                  >
+                    {resending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
+                  </button>
+                </div>
               </div>
             )}
             

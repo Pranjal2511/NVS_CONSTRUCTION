@@ -1,20 +1,28 @@
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import HousePlan from '../models/HousePlan.js';
+import User from '../models/User.js';
+import Enquiry from '../models/Enquiry.js';
 import ApiError from '../utils/ApiError.js';
 import { logAudit } from '../services/auditService.js';
+import { sendEnquiryNotification } from '../services/emailService.js';
+import logger from '../utils/logger.js';
 import slugify from '../utils/slugify.js';
+import { escapeRegex } from '../utils/regex.js';
 
 export const getHousePlans = asyncHandler(async (req, res) => {
   const { category, search } = req.query;
   const filter = {};
   if (category) filter.category = category;
   if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { category: { $regex: search, $options: 'i' } },
-    ];
+    const safeSearch = escapeRegex(search);
+    if (safeSearch) {
+      filter.$or = [
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { description: { $regex: safeSearch, $options: 'i' } },
+        { category: { $regex: safeSearch, $options: 'i' } },
+      ];
+    }
   }
   const plans = await HousePlan.find(filter).sort({ createdAt: -1 });
   ApiResponse.success(res, 200, 'House plans retrieved', plans);
@@ -54,9 +62,29 @@ export const requestHousePlan = asyncHandler(async (req, res) => {
   const plan = await HousePlan.findById(req.params.id);
   if (!plan) throw new ApiError(404, 'House plan not found');
 
-  ApiResponse.success(res, 200, 'House plan request received', {
+  const user = await User.findById(req.user.id);
+  const enquiry = await Enquiry.create({
+    name: user?.name || req.body.name || 'Registered User',
+    phone: user?.phone || req.body.phone || 'N/A',
+    email: user?.email || req.user.email,
+    service: 'House Plan Request',
+    blueprintTitle: plan.title,
+    message: req.body.message || `Customer requested house plan: ${plan.title} (Category: ${plan.category}, Area: ${plan.sqft || 'N/A'} sqft)`,
+    userId: req.user.id,
+  });
+
+  try {
+    await sendEnquiryNotification(enquiry);
+  } catch (err) {
+    logger.warn('Failed to send house plan enquiry email notification', { message: err.message });
+  }
+
+  await logAudit({ userId: req.user.id, action: 'REQUEST_HOUSE_PLAN', resource: 'HousePlan', resourceId: plan.id, req });
+
+  ApiResponse.created(res, 'House plan request received and registered', {
     planId: plan.id,
     title: plan.title,
-    message: 'An admin will contact you regarding this house plan.',
+    enquiryId: enquiry.id,
+    message: 'An admin has received your request and will contact you regarding this house plan.',
   });
 });

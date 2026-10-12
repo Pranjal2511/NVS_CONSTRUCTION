@@ -4,6 +4,7 @@ import Blog from '../models/Blog.js';
 import ApiError from '../utils/ApiError.js';
 import slugify from '../utils/slugify.js';
 import { logAudit } from '../services/auditService.js';
+import { escapeRegex } from '../utils/regex.js';
 
 export const getBlogs = asyncHandler(async (req, res) => {
   const { category, search, tag } = req.query;
@@ -11,17 +12,24 @@ export const getBlogs = asyncHandler(async (req, res) => {
   if (category) filter.category = category;
   if (tag) filter.tags = tag;
   if (search) {
-    filter.$or = [
-      { title: { $regex: search, $options: 'i' } },
-      { content: { $regex: search, $options: 'i' } },
-    ];
+    const safeSearch = escapeRegex(search);
+    if (safeSearch) {
+      filter.$or = [
+        { title: { $regex: safeSearch, $options: 'i' } },
+        { content: { $regex: safeSearch, $options: 'i' } },
+      ];
+    }
   }
   const blogs = await Blog.find(filter).sort({ createdAt: -1 });
   ApiResponse.success(res, 200, 'Blogs retrieved', blogs);
 });
 
 export const getBlogBySlug = asyncHandler(async (req, res) => {
-  const blog = await Blog.findOne({ slug: req.params.slug });
+  const query = { slug: req.params.slug };
+  if (req.user?.role !== 'admin') {
+    query.published = { $ne: false };
+  }
+  const blog = await Blog.findOne(query);
   if (!blog) throw new ApiError(404, 'Blog not found');
   ApiResponse.success(res, 200, 'Blog retrieved', blog);
 });
@@ -36,7 +44,7 @@ export const createBlog = asyncHandler(async (req, res) => {
 });
 
 export const updateBlog = asyncHandler(async (req, res) => {
-  const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
   if (!blog) throw new ApiError(404, 'Blog not found');
   await logAudit({ userId: req.user.id, action: 'UPDATE_BLOG', resource: 'Blog', resourceId: blog.id, req });
   ApiResponse.success(res, 200, 'Blog updated', blog);

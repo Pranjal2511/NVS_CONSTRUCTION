@@ -91,16 +91,20 @@ export const updateAppointment = asyncHandler(async (req, res) => {
     updates.time = rescheduledTime;
   }
 
-  const appointment = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true });
+  const appointment = await Appointment.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
   if (!appointment) throw new ApiError(404, 'Appointment not found');
 
   if (appointment.userId) {
-    await createNotification(
-      appointment.userId,
-      `Appointment ${status.toLowerCase()}${status === 'Rescheduled' ? ` to ${rescheduledDate} ${rescheduledTime}` : ''}`,
-      'appointment',
-      { appointmentId: appointment.id }
-    );
+    try {
+      await createNotification(
+        appointment.userId,
+        `Appointment ${status.toLowerCase()}${status === 'Rescheduled' ? ` to ${rescheduledDate} ${rescheduledTime}` : ''}`,
+        'appointment',
+        { appointmentId: appointment.id }
+      );
+    } catch (err) {
+      logger.warn('Failed to dispatch appointment update notification', { message: err.message });
+    }
   }
 
   await logAudit({

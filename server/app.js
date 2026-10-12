@@ -9,6 +9,7 @@ import env from './config/env.js';
 import { helmetMiddleware, corsMiddleware } from './middleware/security.js';
 import apiRoutes from './routes/index.js';
 import { verifyAccessToken } from './utils/jwt.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -141,5 +142,6 @@ app.use((req, res, next) => {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api', apiRoutes);
+app.use('/api', errorHandler);
 
 export default app;

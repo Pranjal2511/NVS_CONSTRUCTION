@@ -22,9 +22,11 @@ Disallow: /api/
 Disallow: /uploads/
 Disallow: /node_modules/
 
-# Allow specific assets
+# Protect client PDFs and uploads
+Disallow: /pdfs/
+
+# Allow specific public assets
 Allow: /images/
-Allow: /pdfs/
 Allow: /public/
 
 Sitemap: https://nvsbuildcon.com/sitemap.xml
