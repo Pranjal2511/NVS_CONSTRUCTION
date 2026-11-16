@@ -1,92 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../utils/api';
-
-interface HCaptchaWidgetProps {
-  onVerify: (token: string) => void;
-  onExpire?: () => void;
-}
-
-declare global {
-  interface Window {
-    hcaptcha: any;
-  }
-}
-
+interface HCaptchaWidgetProps { onVerify: (token: string) => void; onExpire?: () => void }
+declare global { interface Window { hcaptcha: { render: (element: HTMLElement, options: Record<string, unknown>) => string; remove: (id: string) => void } } }
 export default function HCaptchaWidget({ onVerify, onExpire }: HCaptchaWidgetProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
-  const [siteKey, setSiteKey] = useState<string>('');
-
+  const container = useRef<HTMLDivElement>(null);
+  const handlers = useRef({ onVerify, onExpire });
+  handlers.current = { onVerify, onExpire };
+  const [error, setError] = useState('');
   useEffect(() => {
-    // Fetch hCaptcha config from the server
-    apiFetch('/api/config')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.hcaptchaSiteKey) {
-          setSiteKey(data.hcaptchaSiteKey);
-        } else {
-          // Fallback to test site key
-          setSiteKey('10000000-ffff-ffff-ffff-ffffffffffff');
-        }
-      })
-      .catch(() => {
-        setSiteKey('10000000-ffff-ffff-ffff-ffffffffffff');
-      });
+    let disposed = false; let widget: string | undefined; let timer: ReturnType<typeof setInterval> | undefined;
+    apiFetch('/api/config').then(response => { if (!response.ok) throw new Error(); return response.json(); }).then(config => {
+      if (disposed || !config.captchaEnabled) return;
+      if (!config.hcaptchaSiteKey) throw new Error();
+      if (!document.querySelector('script[data-nvs-captcha]')) {
+        const script = document.createElement('script'); script.dataset.nvsCaptcha = 'true'; script.async = true;
+        script.src = 'https://js.hcaptcha.com/1/api.js?render=explicit'; document.head.appendChild(script);
+      }
+      let attempts = 0;
+      timer = setInterval(() => {
+        if (disposed) return;
+        if (window.hcaptcha && container.current) {
+          clearInterval(timer);
+          widget = window.hcaptcha.render(container.current, { sitekey: config.hcaptchaSiteKey, theme: 'dark', callback: (token: string) => handlers.current.onVerify(token), 'expired-callback': () => handlers.current.onExpire?.(), 'error-callback': () => { handlers.current.onExpire?.(); setError('CAPTCHA unavailable. Reload and try again.'); } });
+        } else if (++attempts >= 40) { clearInterval(timer); setError('CAPTCHA could not load. Check your connection and reload.'); }
+      }, 250);
+    }).catch(() => { if (!disposed) setError('CAPTCHA configuration unavailable. Please retry shortly.'); });
+    return () => { disposed = true; clearInterval(timer); if (widget && window.hcaptcha) window.hcaptcha.remove(widget); };
   }, []);
-
-  useEffect(() => {
-    if (!siteKey || !containerRef.current) return;
-
-    let checkInterval: NodeJS.Timeout;
-    let isRendered = false;
-
-    const renderWidget = () => {
-      if (window.hcaptcha && containerRef.current && !isRendered) {
-        try {
-          const id = window.hcaptcha.render(containerRef.current, {
-            sitekey: siteKey,
-            theme: 'dark',
-            callback: (token: string) => onVerify(token),
-            'expired-callback': () => {
-              if (onExpire) onExpire();
-            },
-          });
-          widgetIdRef.current = id;
-          isRendered = true;
-          if (checkInterval) clearInterval(checkInterval);
-        } catch (e) {
-          // Render failed or script not fully loaded yet
-        }
-      }
-    };
-
-    // Try rendering immediately
-    renderWidget();
-
-    // Or poll until window.hcaptcha is available
-    if (!isRendered) {
-      checkInterval = setInterval(() => {
-        if (window.hcaptcha) {
-          renderWidget();
-        }
-      }, 500);
-    }
-
-    return () => {
-      if (checkInterval) clearInterval(checkInterval);
-      if (window.hcaptcha && widgetIdRef.current !== null) {
-        try {
-          window.hcaptcha.reset(widgetIdRef.current);
-        } catch (e) {
-          // ignore reset errors on unmount
-        }
-      }
-    };
-  }, [siteKey, onVerify, onExpire]);
-
-  return (
-    <div className="flex justify-center my-4">
-      <div ref={containerRef} className="h-captcha-container"></div>
-    </div>
-  );
-}
+  return <div className="flex flex-col items-center my-4"><div ref={container} />{error && <p role="alert" className="text-red-400 text-sm">{error}</p>}</div>;
+};

@@ -1,31 +1,13 @@
+import twilio from 'twilio';
 import env from '../config/env.js';
-import { getWhatsAppNumber, generateWhatsAppLink } from './whatsappService.js';
-
-// Note: This project currently has WhatsApp utilities, not an SMS provider.
-// So for "phone OTP" we deliver by WhatsApp deep link.
-export const sendLoginOtpPhone = async (user, phoneIdentifier, otp) => {
-  // phoneIdentifier may be raw input; clean digits for message
-  const waNumber = await getWhatsAppNumber();
-  const cleaned = String(phoneIdentifier).replace(/\D/g, '');
-
-  // If whatsapp number is not properly set, fail clearly.
-  if (!waNumber) {
-    throw new Error('WhatsApp number is not configured in SiteSettings / env.');
-  }
-
-  const message = `Your NVS Buildcon login OTP is ${otp}. It expires in 5 minutes.`;
-
-  // If you ever add an SMS provider, this function is where to integrate it.
-  // For now we return a link that the client (or server log) can use.
-  const link = generateWhatsAppLink(cleaned || user.phone || waNumber, message);
-
-  // We intentionally do not attempt to "send" WhatsApp programmatically here,
-  // because WhatsApp requires a user to open the deep link.
-  return {
-    delivered: true,
-    channel: 'phone',
-    otpDestination: cleaned || user.phone,
-    whatsappLink: link,
-  };
+// Twilio Verify sends a real challenge; a WhatsApp deep link is not delivery.
+// Local OTP verification needs the same code, so use an operator-configured SMS sender.
+export const sendLoginOtpPhone = async (_user, phoneIdentifier, otp) => {
+  const from = process.env.TWILIO_SMS_FROM;
+  if (!from || !env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) throw new Error('Phone OTP delivery is not configured; use email login');
+  if (!/^\+[1-9]\d{7,14}$/.test(phoneIdentifier)) throw new Error('Phone must be in E.164 format');
+  const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+  const result = await client.messages.create({ from, to: phoneIdentifier, body: 'Your NVS Buildcon verification code is ' + otp + '. Valid for 5 minutes.' });
+  if (!result.sid || result.errorCode) throw new Error('SMS provider rejected the verification message');
+  return { accepted: true, channel: 'phone' };
 };
-

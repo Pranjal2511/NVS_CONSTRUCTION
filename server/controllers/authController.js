@@ -2,7 +2,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import User from '../models/User.js';
 import ApiError from '../utils/ApiError.js';
-import { hashPassword } from '../utils/password.js';
+import { hashPassword, comparePassword } from '../utils/password.js';
 import {
   registerUser,
   loginUser,
@@ -103,8 +103,13 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (!user) throw new ApiError(404, 'User not found');
 
   if (req.body.name) user.name = req.body.name;
-  if (req.body.phone) user.phone = req.body.phone;
-  if (req.body.password) user.password = await hashPassword(req.body.password);
+  if (req.body.phone && req.body.phone !== user.phone) { user.phone = req.body.phone; user.phoneVerified = false; }
+  if (req.body.password) {
+    if (user.password && !(await comparePassword(req.body.currentPassword || '', user.password))) throw new ApiError(403, 'Current password is required');
+    user.password = await hashPassword(req.body.password);
+    user.refreshToken = undefined;
+    user.sessionVersion = (user.sessionVersion || 0) + 1;
+  }
   if (req.body.avatar) user.avatar = req.body.avatar;
 
   await user.save();

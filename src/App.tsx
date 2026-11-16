@@ -87,6 +87,7 @@ export default function App() {
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState('');
   
   // Modals & Inquiries
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
@@ -139,7 +140,11 @@ export default function App() {
 
     if (currentUser) {
       if (currentUser.role === 'admin') {
-        if (view === 'login' || view === 'admin-login') {
+        if (view === 'login') {
+          navigate('/', { replace: true });
+          return;
+        }
+        if (view === 'admin-login') {
           navigate('/admin/dashboard', { replace: true });
           return;
         }
@@ -149,7 +154,7 @@ export default function App() {
           return;
         }
         if (view === 'login' || view === 'admin-login') {
-          navigate('/dashboard', { replace: true });
+          navigate('/', { replace: true });
           return;
         }
       }
@@ -171,17 +176,22 @@ export default function App() {
   const handleLoginSuccess = async () => {
     const user = await fetchUserProfile();
     setCurrentUser(user);
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' && location.pathname === '/admin/login') {
       handleViewChange('admin-dashboard');
     } else {
-      handleViewChange('dashboard');
+      handleViewChange('home');
     }
   };
 
   const handleLogout = async () => {
-    await logout();
-    setCurrentUser(null);
-    handleViewChange('home');
+    try {
+      await logout();
+      setSessionError('');
+      setCurrentUser(null);
+      handleViewChange('home');
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : 'Logout failed. Please retry.');
+    }
   };
 
 
@@ -204,6 +214,7 @@ export default function App() {
     <div className="min-h-screen bg-brand-surface text-brand-on-surface selection:bg-brand-gold/20 selection:text-brand-gold flex flex-col">
       {/* Premium Luxury Preloader */}
       <Preloader />
+      {sessionError && <div role="alert" className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] rounded-xl bg-red-950 text-red-100 p-4 max-w-lg">{sessionError}</div>}
 
       {/* Top Navbar — hidden on admin/client portal routes */}
       {!isPortalRoute && (

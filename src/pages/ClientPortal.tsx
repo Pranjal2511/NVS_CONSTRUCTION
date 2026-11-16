@@ -8,7 +8,7 @@ import {
   AlertCircle, CheckCircle, Clock, Star, Home as HomeIcon, Loader2, X, Menu, Eye
 } from 'lucide-react';
 import { apiFetch } from '../utils/api';
-import { AuthUser, logout as authLogout, signOutAllDevices, fetchUserProfile } from '../utils/auth';
+import { AuthUser, fetchUserProfile } from '../utils/auth';
 import { Inquiry } from '../types';
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -949,7 +949,7 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ currentUser, onLogout, onNa
                   className="w-full py-2.5 border border-red-500/20 text-red-400 hover:bg-red-500/10 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all">
                   Logout Account
                 </button>
-                <button onClick={async () => { await signOutAllDevices(); onLogout(); }}
+                <button onClick={onLogout}
                   className="w-full py-2.5 border border-red-500/20 bg-red-500/5 text-red-400 hover:bg-red-500/10 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all">
                   Sign Out All Devices
                 </button>

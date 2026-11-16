@@ -22,8 +22,8 @@ const siteSettingsSchema = new mongoose.Schema(
     projectsCount: { type: Number, default: 50 },
     citiesCount: { type: Number, default: 12 },
     yearsCount: { type: Number, default: 15 },
-    planningPrice: { type: Number, default: 5 },
-    constructionPrice: { type: Number, default: 1100 },
+    planningPrice: { type: Number, default: 5, min: 0 },
+    constructionPrice: { type: Number, default: 1100, min: 0 },
     pricingDisclaimer: {
       type: String,
       default: 'Prices shown are starting estimates only. Final quotation depends on project size, structural complexity, location, materials, finishing standards, and client requirements.',

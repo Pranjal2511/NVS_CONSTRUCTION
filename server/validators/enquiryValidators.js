@@ -2,7 +2,7 @@ import { body, param } from 'express-validator';
 
 export const createEnquiryValidator = [
   body('name').trim().notEmpty().isLength({ max: 100 }).escape(),
-  body('email').trim().isEmail().normalizeEmail(),
+  body('email').if((_value, { req }) => req.body.service !== 'Callback Request' || Boolean(req.body.email)).trim().isEmail().normalizeEmail(),
   body('phone').trim().notEmpty().isLength({ max: 20 }),
   body('service').trim().notEmpty().isLength({ max: 200 }),
   body('message').trim().notEmpty().isLength({ max: 5000 }),

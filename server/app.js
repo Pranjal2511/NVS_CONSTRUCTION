@@ -6,10 +6,10 @@ import hpp from 'hpp';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import env from './config/env.js';
-import { helmetMiddleware, corsMiddleware } from './middleware/security.js';
+import { helmetMiddleware, corsMiddleware, csrfProtection } from './middleware/security.js';
 import apiRoutes from './routes/index.js';
 import { verifyAccessToken } from './utils/jwt.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,10 +26,13 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   next();
 });
-app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Reset links and other query parameters may contain secrets; log only the path.
+morgan.token('safe-path', req => req.originalUrl.split('?')[0]);
+app.use(morgan(':method :safe-path :status :response-time ms'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
+app.use('/api', csrfProtection);
 app.use(mongoSanitize());
 app.use(hpp());
 
@@ -53,7 +56,7 @@ app.use((req, res, next) => {
       } catch (err) {
         // Token is invalid/expired; clear it and treat user as unauthenticated
         res.clearCookie('accessToken');
-        res.clearCookie('refreshToken');
+        // Keep refresh cookie so the client can renew an expired access session.
       }
     }
 
@@ -142,6 +145,7 @@ app.use((req, res, next) => {
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use('/api', apiRoutes);
+app.use('/api', notFound);
 app.use('/api', errorHandler);
 
 export default app;

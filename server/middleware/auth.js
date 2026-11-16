@@ -1,7 +1,8 @@
 import { verifyAccessToken } from '../utils/jwt.js';
+import User from '../models/User.js';
 import ApiError from '../utils/ApiError.js';
 
-export const authenticate = (req, _res, next) => {
+export const authenticate = async (req, _res, next) => {
   try {
     let token = req.cookies?.accessToken;
 
@@ -15,7 +16,9 @@ export const authenticate = (req, _res, next) => {
     }
 
     const decoded = verifyAccessToken(token);
-    req.user = decoded;
+    const user = await User.findById(decoded.id);
+    if (!user || user.blocked || user.isActive === false || !user.isVerified || (user.sessionVersion || 0) !== (decoded.sessionVersion || 0)) throw new ApiError(401, 'Session expired or revoked');
+    req.user = { ...decoded, role: user.role, email: user.email };
     next();
   } catch (err) {
     if (err instanceof ApiError) return next(err);
@@ -23,7 +26,7 @@ export const authenticate = (req, _res, next) => {
   }
 };
 
-export const optionalAuth = (req, _res, next) => {
+export const optionalAuth = async (req, _res, next) => {
   try {
     let token = req.cookies?.accessToken;
     const authHeader = req.headers.authorization;
@@ -31,7 +34,9 @@ export const optionalAuth = (req, _res, next) => {
       token = authHeader.split(' ')[1];
     }
     if (token) {
-      req.user = verifyAccessToken(token);
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.id);
+      if (user && user.isVerified && !user.blocked && user.isActive !== false && (user.sessionVersion || 0) === (decoded.sessionVersion || 0)) req.user = { ...decoded, role: user.role, email: user.email };
     }
   } catch {
     // ignore invalid optional token

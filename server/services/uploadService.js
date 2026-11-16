@@ -26,11 +26,7 @@ const RESOURCE_TYPES = {
 };
 
 export const getAllowedMimeTypes = (fileType) =>
-  ALLOWED_MIME_TYPES[fileType] || [
-    ...ALLOWED_MIME_TYPES.image,
-    ...ALLOWED_MIME_TYPES.video,
-    ...ALLOWED_MIME_TYPES.pdf,
-  ];
+  ALLOWED_MIME_TYPES[fileType] || [];
 
 export const validateMimeType = (mimetype, fileType) => {
   const allowed = getAllowedMimeTypes(fileType);
@@ -61,6 +57,9 @@ export const uploadFile = async (file, fileType = 'image') => {
   }
 
   const ext = path.extname(file.originalname).toLowerCase();
+  const extensions = { 'image/jpeg': ['.jpg', '.jpeg'], 'image/png': ['.png'], 'image/webp': ['.webp'], 'image/gif': ['.gif'], 'application/pdf': ['.pdf'], 'video/mp4': ['.mp4'], 'video/webm': ['.webm'], 'video/quicktime': ['.mov'] };
+  if (!extensions[file.mimetype]?.includes(ext)) throw new ApiError(400, 'File extension does not match its MIME type');
+  if (!file.buffer || file.buffer.length > getMaxFileSize()) throw new ApiError(400, 'Invalid file size');
   const blocked = ['.exe', '.bat', '.cmd', '.sh', '.php', '.js', '.html'];
   if (blocked.includes(ext)) {
     throw new ApiError(400, 'Executable files are not allowed');
@@ -92,6 +91,7 @@ export const uploadFile = async (file, fileType = 'image') => {
     };
   }
 
+  if (env.IS_PRODUCTION) throw new ApiError(503, 'Persistent upload storage is not configured');
   logger.warn('Cloudinary not configured, using local storage');
   const local = uploadToLocal(file);
   return { ...local, originalName: file.originalname };
@@ -99,8 +99,9 @@ export const uploadFile = async (file, fileType = 'image') => {
 
 export const deleteFile = async (publicId, resourceType = 'image') => {
   if (!publicId) return;
+  if (typeof publicId !== 'string' || publicId.includes('..') || publicId.includes('\\')) throw new ApiError(400, 'Invalid upload identifier');
 
-  if (isCloudinaryConfigured && !publicId.includes('/uploads/')) {
+  if (isCloudinaryConfigured && resourceType !== 'local' && !publicId.includes('/uploads/')) {
     await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType === 'video' ? 'video' : resourceType === 'raw' ? 'raw' : 'image',
     });
@@ -108,6 +109,7 @@ export const deleteFile = async (publicId, resourceType = 'image') => {
   }
 
   const filename = publicId.replace('/uploads/', '');
+  if (filename !== path.basename(filename) || path.isAbsolute(filename)) throw new ApiError(400, 'Invalid upload identifier');
   const filepath = path.join(localUploadDir, filename);
   if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
 };

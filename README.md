@@ -1,72 +1,42 @@
 # NVS Buildcon & Architects
 
-> Premium architectural design, Vastu-compliant residential/commercial planning, and turnkey construction management platform based in Lucknow & Delhi NCR.
+Existing React/TypeScript/Vite frontend and Express/Mongoose backend. The integrated development server runs at http://localhost:3000.
 
----
+## Current repair status
 
-## 🛠️ Technology Stack
+See [current project status](docs/CURRENT_PROJECT_STATUS.md), [repair log](docs/REPAIR_LOG.md), [master plan](docs/MASTER_REPAIR_PLAN.md) and [test report](docs/TEST_REPORT.md). Atlas connects to the operator-selected nvs_buildcon database, but it has no collections. Gmail SMTP verification fails EAUTH/535. No initialization, admin creation or deployment has been performed.
 
-- **Frontend:** React 19, TypeScript, Vite 6, TailwindCSS v4, GSAP, Lucide Icons
-- **Backend:** Node.js (ES Modules), Express 4.21, Mongoose 9 (MongoDB)
-- **Security:** HttpOnly JWT authentication, bcryptjs, Helmet, CORS, express-rate-limit, express-mongo-sanitize, hCaptcha
-- **Third-Party Integrations:** Cloudinary (asset hosting), Resend & Nodemailer (email notifications), Twilio (WhatsApp notifications)
-- **SEO & Performance:** Prerendered static public routes (`scripts/prerender-public-routes.mjs`), terser compression, optimized asset pipeline
+## Windows CMD
 
----
+    cd /d F:\nvs\NVS_CONSTRUCTION
+    npm ci
+    npm run db:check
+    npm run dev
 
-## 📚 Documentation Directory
+For a fresh checkout only, copy .env.example to .env and supply private configuration first. Do not overwrite an existing .env. Use two independently generated JWT secrets. See [environment setup](docs/ENVIRONMENT_SETUP.md).
 
-The project includes a complete audit and hardening documentation suite in the `docs/` folder:
+start.bat checks Node, .env, dependencies, configured port and database connectivity. It does not kill other processes or seed data. Database outages return 503 from data APIs; development frontend startup can continue. Ctrl+C stops the server. Optional npm run dev:client runs a separate frontend on port 3001, proxying to backend port 3000.
 
-- 📑 [PROJECT_AUDIT.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/PROJECT_AUDIT.md) — Comprehensive architectural, security, and codebase audit report.
-- 📋 [REPAIR_PLAN.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/REPAIR_PLAN.md) — Step-by-step remediation roadmap and verification matrix.
-- 🛡️ [SECURITY_REPORT.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/SECURITY_REPORT.md) — Complete security posture, threat mitigation, and production hardening details.
-- 🚀 [DEPLOYMENT_GUIDE.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/DEPLOYMENT_GUIDE.md) — Deployment instructions for Render, Railway, VPS, Nginx, and cloud platforms.
-- 🧪 [TEST_REPORT.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/TEST_REPORT.md) — Test execution report with 100% passing results.
-- ⚙️ [ENVIRONMENT_SETUP.md](file:///d:/nvs/NVS_CONSTRUCTION/docs/ENVIRONMENT_SETUP.md) — Local development and environment configuration guide.
+## Checks
 
----
+    npm run typecheck
+    npm run lint
+    npm test
+    npm run build
+    npm run email:verify
 
-## 🚀 Quick Start
+Tests use isolated fixtures/model/provider mocks and never load local .env. The email verification command uses the configured SMTP server but sends no email. Actual delivery requires explicit operator invocation of node scripts/test-email.mjs --send recipient@example.com.
 
-### 1. Installation
-```bash
-npm install
-```
+## Database initialization
 
-### 2. Environment Configuration
-Copy `.env.example` to `.env` and fill in your secrets:
-```bash
-cp .env.example .env
-```
+Do not run initialization without reviewing the target/content and approving writes. [Current project status](docs/CURRENT_PROJECT_STATUS.md) contains the exact dry-run, apply and separate administrator commands. scripts/seed.mjs inserts only missing repository starter content. It never reconstructs historical users or enquiries. scripts/make-admin.mjs now routes to the guarded bootstrap procedure.
 
-### 3. Development Server
-Run the integrated full-stack server (Express + embedded Vite dev middleware):
-```bash
-npm run dev
-```
-Or simply double-click [`start.bat`](file:///d:/nvs/NVS_CONSTRUCTION/start.bat) on Windows to automatically handle port cleanup, verify database connection, launch the server, and open `http://localhost:3000` in your browser.
+## Runtime and deployment
 
----
+Use a supported Node release satisfying the installed packages (Node 22.12+; this repair ran on Node 26.13.1). Production requires NODE_ENV=production, explicit database URI, distinct strong secrets, HTTPS origins, configured mail/CAPTCHA/storage and backups.
 
-## 🧪 Testing & Verification
+[Deployment guide](docs/DEPLOYMENT_GUIDE.md) covers Render and Vercel. [Backup/recovery](docs/DATABASE_BACKUP_RECOVERY.md) distinguishes starter initialization from data recovery. Public PDF confidentiality, business pricing approval and live integration tests remain deployment gates.
 
-```bash
-# Type check TypeScript code
-npm run typecheck
+## API layout
 
-# Run automated integration tests
-npm test
-
-# Build production bundle and prerender SEO routes
-npm run build
-```
-
----
-
-## 🔐 Security Features
-
-- **HttpOnly Cookies:** Authentication tokens are stored in secure cookies to prevent XSS exfiltration.
-- **Dedicated Abuse Limiters:** Public inquiries and consultations are protected by rate limiters (5 req / 15 min) and hCaptcha anti-bot checks.
-- **ReDoS Protection:** Search and filter strings are sanitized through `escapeRegex` utilities.
-- **Admin Defense:** Strict role-based authorization (`[authenticate, authorize('admin')]`) and secret path SSR interception.
+/api/auth, /api/user and /api/admin handle authentication and protected account operations. Public content is under /api/projects, /api/gallery, /api/house-plans, /api/blogs, /api/services, /api/testimonials and /api/search. Lead submissions use /api/enquiries and /api/appointments; media uses admin-protected /api/uploads. /api/settings returns 503 until settings are initialized. /api/health is process liveness; /api/ready verifies database connectivity, not content or email readiness.

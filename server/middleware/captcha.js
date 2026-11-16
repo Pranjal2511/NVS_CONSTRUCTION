@@ -35,6 +35,7 @@ export const verifyCaptcha = async (req, res, next) => {
 
     const verifyRes = await fetch(HCAPTCHA_VERIFY_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
     });
@@ -53,13 +54,12 @@ export const verifyCaptcha = async (req, res, next) => {
   } catch (err) {
     logger.error('CAPTCHA verification request failed', { message: err.message });
 
-    if (env.IS_PRODUCTION) {
+    {
       return res.status(503).json({
         success: false,
         message: 'CAPTCHA service temporarily unavailable. Please try again shortly.',
       });
     }
 
-    next();
   }
 };

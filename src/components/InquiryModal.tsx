@@ -1,3 +1,4 @@
+import HCaptchaWidget from './HCaptchaWidget';
 import React, { useState, useEffect } from 'react';
 import { X, Send, Phone, Mail, User, Clock, CheckCircle, Database } from 'lucide-react';
 import { Inquiry } from '../types';
@@ -17,6 +18,8 @@ export default function InquiryModal({
   initialBlueprintTitle,
   initialService
 }: InquiryModalProps) {
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -61,7 +64,7 @@ export default function InquiryModal({
       const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 'h-captcha-response': captchaToken,
           name,
           phone,
           email,
@@ -109,6 +112,7 @@ export default function InquiryModal({
     } catch (err: any) {
       setError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setLoading(false);
     }
   };
@@ -293,7 +297,8 @@ export default function InquiryModal({
                   {loading ? 'Transmitting Request...' : 'Submit Project Blueprint Request'} <Send size={16} />
                 </button>
               </div>
-            </form>
+            <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+</form>
           )}
 
           {/* Past submissions drawer/panel inside the modal to show persistent storage functioning */}

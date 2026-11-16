@@ -1,3 +1,4 @@
+import HCaptchaWidget from './HCaptchaWidget';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Phone, User, Clock, CheckCircle, Loader2 } from 'lucide-react';
@@ -11,6 +12,8 @@ interface CallbackModalProps {
 const TIME_OPTIONS = ['Morning (9am–12pm)', 'Afternoon (12pm–4pm)', 'Evening (4pm–7pm)'];
 
 export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [preferredTime, setPreferredTime] = useState(TIME_OPTIONS[0]);
@@ -31,11 +34,9 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
       const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 'h-captcha-response': captchaToken,
           name,
-          phone,
-          email: `callback-${Date.now()}@nvsbuildcon.com`, // placeholder to pass validation
-          service: 'Callback Request',
+          phone,          service: 'Callback Request',
           message: `Callback requested for ${preferredTime}. Phone: ${phone}`,
         }),
       });
@@ -52,6 +53,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
     } catch (err: any) {
       setError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setLoading(false);
     }
   };
@@ -197,6 +199,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
                       <><Phone size={14} /> Request Callback</>
                     )}
                   </button>
+                <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
                 </form>
               </>
             )}

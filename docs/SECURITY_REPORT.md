@@ -1,3 +1,20 @@
+# Current security status — 2026-11-16
+
+This section supersedes older security conclusions below; historical working notes are retained.
+
+Implemented: production security cannot be disabled by setting IS_PRODUCTION=false alongside NODE_ENV=production; exact configured CORS origins; Origin checks for browser cookie writes; HttpOnly cookies; no browser bearer tokens in JSON/localStorage; hashed refresh-token persistence with atomic rotation and random token IDs; current database role/account checks; access session revocation; pending-account retention; fail-closed configured CAPTCHA; content writable fields; query escaping/caps; invalid-upload/path rejection; explicit development-only seed/admin workflows.
+
+Local .env is intentionally private, ignored and untracked. No .env path appeared in the inspected Git history. Presence of local credentials alone is not evidence of compromise. Identical JWT secrets were rotated to independent random values. Other credentials were not changed or printed; rotate them if exposure elsewhere is known. SMTP must be corrected because the real provider rejected authentication.
+
+Known limits: public/pdfs and local upload URLs remain public; robots.txt is not access control. Client-labelled drawings require owner classification and private authenticated delivery before release. MIME/extension validation is not file-content or malware scanning. Phone-ownership enrollment is not implemented, so email login is required. A single refresh slot preserves the existing single-session policy. Rate limiting/duplicate guards need shared state for multiple instances. Live production TLS/origins, provider delivery, CAPTCHA, upload storage and restore drills remain unverified.
+
+npm audit --omit=dev: zero findings. Full audit: six moderate findings in TypeScript ESLint/minimatch. ESLint 9 also emitted an unsupported-version warning. Do not equate a clean production audit with a complete security assessment. Machine-readable reports are in dependency-audit*.json.
+
+The earlier statement that robots.txt resolved private-document exposure is incorrect. No deployment approval should rely on it.
+
+---
+## Historical report retained below
+
 # Production Security & Hardening Report
 ## NVS Buildcon & Architects Platform
 
@@ -55,7 +72,23 @@
 
 ---
 
-## 3. Production Deployment Security Checklist
+## 3. Additional Verified Findings (October 2026 Repair Session)
+
+During verification against current source code, the following findings were confirmed and remediated in this session:
+
+| ID | Category | Severity | File / Location | Description | Status |
+|----|----------|----------|-----------------|-------------|--------|
+| **NVS-001** | Credential Exposure | **P0 (Critical)** | `.env` (local, gitignored) | Real `JWT_SECRET`, `JWT_REFRESH_SECRET`, `MONGODB_URI` with credentials, `SMTP_USER`/`SMTP_PASS`, `ADMIN_SEED_PASSWORD` present in local `.env`. `.env` is gitignored and not tracked, but all secrets must be rotated before production use. | **UNRESOLVED** — rotate all secrets |
+| **NVS-002** | Injection / ReDoS | **P1 (High)** | `server/controllers/projectController.js:13-18` | Raw `search` passed to MongoDB `$regex` without `escapeRegex`. | **RESOLVED** — `escapeRegex` applied |
+| **NVS-003** | Injection / ReDoS | **P1 (High)** | `server/controllers/galleryController.js:11-16` | Raw `search` passed to MongoDB `$regex` without `escapeRegex`. | **RESOLVED** — `escapeRegex` applied |
+| **NVS-004** | Integrity | **P1 (High)** | `server/controllers/galleryController.js:29` | `findByIdAndUpdate` missing `{ runValidators: true }`. | **RESOLVED** — added |
+| **NVS-005** | Integrity | **P1 (High)** | `server/controllers/contentController.js:20,45` | `updateService` / `updateTestimonial` missing `{ runValidators: true }`. | **RESOLVED** — added |
+| **NVS-006** | Information Leak | **P1 (High)** | `server/utils/seed.js:60` | Temp admin password printed to logs. | **RESOLVED** — password value removed from log |
+| **NVS-007** | Data Integrity | **P1 (High)** | `server/config/database.js:15` | `seedDatabase()` auto-ran on every DB connection. | **RESOLVED** — auto-seed removed |
+
+---
+
+## 4. Production Deployment Security Checklist
 
 Before deploying this application to production, system administrators must:
 1. **Rotate all Secrets:** Generate new, random 48-byte hex secrets for `JWT_SECRET` and `JWT_REFRESH_SECRET`:

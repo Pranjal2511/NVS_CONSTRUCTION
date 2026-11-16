@@ -1,3 +1,4 @@
+import { writableFields } from '../utils/writableFields.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import Service from '../models/Service.js';
@@ -11,13 +12,13 @@ export const getServices = asyncHandler(async (_req, res) => {
 });
 
 export const createService = asyncHandler(async (req, res) => {
-  const service = await Service.create(req.body);
+  const service = await Service.create(writableFields('Service', req.body));
   await logAudit({ userId: req.user.id, action: 'CREATE_SERVICE', resource: 'Service', resourceId: service.id, req });
   ApiResponse.created(res, 'Service created', service);
 });
 
 export const updateService = asyncHandler(async (req, res) => {
-  const service = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const service = await Service.findByIdAndUpdate(req.params.id, writableFields('Service', req.body), { new: true, runValidators: true });
   if (!service) throw new ApiError(404, 'Service not found');
   ApiResponse.success(res, 200, 'Service updated', service);
 });
@@ -34,7 +35,7 @@ export const getTestimonials = asyncHandler(async (_req, res) => {
 });
 
 export const createTestimonial = asyncHandler(async (req, res) => {
-  const data = { ...req.body };
+  const data = writableFields('Testimonial', req.body);
   if (data.clientName && !data.name) data.name = data.clientName;
   const testimonial = await Testimonial.create(data);
   await logAudit({ userId: req.user.id, action: 'CREATE_TESTIMONIAL', resource: 'Testimonial', resourceId: testimonial.id, req });
@@ -42,7 +43,7 @@ export const createTestimonial = asyncHandler(async (req, res) => {
 });
 
 export const updateTestimonial = asyncHandler(async (req, res) => {
-  const testimonial = await Testimonial.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const testimonial = await Testimonial.findByIdAndUpdate(req.params.id, writableFields('Testimonial', req.body), { new: true, runValidators: true });
   if (!testimonial) throw new ApiError(404, 'Testimonial not found');
   ApiResponse.success(res, 200, 'Testimonial updated', testimonial);
 });

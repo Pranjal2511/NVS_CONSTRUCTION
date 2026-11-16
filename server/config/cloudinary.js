@@ -1,10 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import env from './env.js';
 
-const isConfigured =
-  env.CLOUDINARY_CLOUD_NAME &&
-  env.CLOUDINARY_API_KEY &&
-  env.CLOUDINARY_API_SECRET;
+const isConfigured = [env.CLOUDINARY_CLOUD_NAME, env.CLOUDINARY_API_KEY, env.CLOUDINARY_API_SECRET].every(value => typeof value === 'string' && value.length > 0 && !/your_|placeholder|example/i.test(value));
 
 if (isConfigured) {
   cloudinary.config({

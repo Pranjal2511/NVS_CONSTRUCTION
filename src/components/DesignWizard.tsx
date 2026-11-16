@@ -1,3 +1,4 @@
+import HCaptchaWidget from './HCaptchaWidget';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Compass, ArrowRight, ArrowLeft, CheckCircle, Send, LayoutGrid, Ruler, Layers, DollarSign, User } from 'lucide-react';
@@ -16,6 +17,8 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
   const [bedrooms, setBedrooms] = useState('3 BHK');
   const [style, setStyle] = useState<'Modern' | 'Classic' | 'Luxury' | 'Minimal'>('Luxury');
   const [budget, setBudget] = useState('₹80 Lakhs - 1.5 Crore');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -49,7 +52,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
       const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 'h-captcha-response': captchaToken,
           name,
           phone,
           email,
@@ -68,7 +71,8 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
       setIsCompleted(true);
       // Save locally to show in history
       const saved = localStorage.getItem('nvs_inquiries');
-      const past = saved ? JSON.parse(saved) : [];
+      let past = [];
+      try { const parsed = saved ? JSON.parse(saved) : []; past = Array.isArray(parsed) ? parsed : []; } catch { /* Ignore corrupted local history. */ }
       const newInq = {
         id: Math.random().toString(36).substr(2, 9),
         name,
@@ -84,6 +88,7 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
     } catch (err: any) {
       setError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setLoading(false);
     }
   };
@@ -460,7 +465,8 @@ export default function DesignWizard({ onViewChange }: DesignWizardProps) {
                   </button>
                 )}
               </div>
-            </form>
+            <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+</form>
           </div>
         )}
       </div>

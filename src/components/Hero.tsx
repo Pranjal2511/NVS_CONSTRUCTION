@@ -50,7 +50,6 @@ export default function Hero({ onInquire, onBookConsultation }: HeroProps) {
           playsInline
           poster="/images/WhatsApp Image 2026-06-29 at 13.04.30.jpeg"
           preload="auto"
-          fetchPriority="high"
           onError={() => {
             if (videoRef.current) videoRef.current.style.display = 'none';
           }}

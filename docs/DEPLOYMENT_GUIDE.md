@@ -1,136 +1,47 @@
-# Production Deployment Guide
-## NVS Buildcon & Architects Platform
+# Deployment guide — approval pending
 
-**Platform:** Node.js (v20+ recommended), MongoDB Atlas, Vite + React 19  
-**Hosting Compatibility:** Render, Railway, AWS ECS/App Runner, DigitalOcean App Platform, Ubuntu VPS (PM2 + Nginx)
+No deployment was performed. Do not deploy until the blockers in CURRENT_PROJECT_STATUS.md are resolved. Build success does not prove live email, customer persistence, privacy or production readiness.
 
----
+## Integrated Render / Node service
 
-## 1. System Requirements
+Use the existing architecture:
 
-- **Node.js:** v20.x or v22.x LTS
-- **Package Manager:** npm v10+
-- **Database:** MongoDB Atlas M0 (Free Tier) or M10+ (Replica Set 5.0+)
-- **Cloud Storage:** Cloudinary account for media uploads (blueprints, portfolio images)
-- **Email Service:** Resend API (recommended for cloud hosting) or Gmail SMTP App Password
-- **Anti-Bot:** hCaptcha Account (Site Key & Secret Key)
+    npm ci
+    npm run typecheck
+    npm run lint
+    npm test
+    npm run build
 
----
+Set production environment variables privately, then start with npm start. NODE_ENV must be production. Do not omit build dependencies before building. The Render blueprint now uses npm ci && npm run build, starts npm start, checks /api/ready and disables automatic deployment. These are repository changes only; no hosted service was modified.
 
-## 2. Environment Variables Configuration
+Use a supported Node version satisfying dependencies (22.12+; local tests ran on 26.13.1). Configure MONGODB_URI with an explicit intended production database, independent JWT secrets, APP_URL/CLIENT_URL exact HTTPS origins, EMAIL_PROVIDER and valid sender configuration, hCaptcha domain keys and persistent media storage. Local developer credentials must not be copied to production.
 
-Copy `.env.example` to `.env` on your deployment server or inject them into your platform's Environment Secrets:
+The backend currently trusts one reverse-proxy hop. Verify that the hosting edge is the only route to the backend and strips/replaces forwarded headers. Review this setting for a direct-hosted server or a different proxy topology.
 
-```ini
-# Server
-NODE_ENV=production
-IS_PRODUCTION=true
-PORT=3000
-APP_URL=https://nvsbuildcon.com
-CLIENT_URL=https://nvsbuildcon.com
+## Vercel frontend plus Render API
 
-# Database
-MONGODB_URI=mongodb+srv://<db_user>:<db_pass>@cluster.mongodb.net/nvs_buildcon?retryWrites=true&w=majority
+vercel.json hosts the built frontend only; it does not run the Express/Mongoose backend. Supply VITE_API_URL at frontend build time with the real API origin. Set APP_URL and CLIENT_URL to actual permitted origins on the API service. There is no universal vercel.app allowlist.
 
-# Security Keys (Generate using: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")
-JWT_SECRET=your_generated_cryptographic_secret_minimum_32_chars
-JWT_REFRESH_SECRET=your_generated_cryptographic_refresh_secret_minimum_32_chars
-JWT_ACCESS_EXPIRY=15m
-JWT_REFRESH_EXPIRY=7d
-ADMIN_SECRET_PATH=/admin-management-portal
-ADMIN_SEED_PASSWORD=YourStrongComplexAdminPassword!2026
+Cross-site cookies need COOKIE_SAME_SITE=none with HTTPS Secure cookies, but browsers may still block third-party cookies. Prefer same-site custom domains or a reviewed same-origin proxy. Verify registration, refresh and logout from the actual production browser; localhost success is insufficient.
 
-# Email Delivery
-RESEND_API_KEY=re_your_resend_api_key
+## Database provisioning
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+The developer seed/admin tools refuse production mode. Provision production content and the initial administrator through a separately approved, reviewed maintenance procedure, including declared unique/TTL indexes. Never temporarily weaken live authentication or enable public admin registration. Before changing an existing target, take and verify a backup. Do not run any drop/delete/syncIndexes workflow.
 
-# hCaptcha (Required for production form anti-bot verification)
-HCAPTCHA_SECRET=0x_your_hcaptcha_secret_key
-HCAPTCHA_SITE_KEY=your_hcaptcha_site_key
-```
+## Required release gates
 
----
+- Actual email sender and inbox test; successful registration/verification, resend after temporary failure, password reset, login, refresh, logout and current-role checks.
+- Approved content/catalog and verified persistent enquiries/appointments/house-plan requests on a dedicated test environment.
+- Real CAPTCHA and Cloudinary tests using approved test assets.
+- Classify every public PDF. Confidential documents must leave public/ and unauthenticated upload serving; implement per-user authorization and signed/private delivery before publishing them. robots.txt cannot secure them.
+- Exact CORS/cookie settings, TLS, proxy trust, production CSP and browser testing on the hosted domains.
+- Backup policy and a successful restore rehearsal to a separate empty target.
+- Uptime monitoring of /api/health and /api/ready, plus separate email-delivery/notification and data-write checks. Readiness endpoint proves database connectivity only.
+- Shared rate-limit/idempotency store for more than one backend instance. Current duplicate guard is local to one process.
+- Remaining dev-tool advisory/deprecation review and an operational rollback plan.
 
-## 3. Build & Production Start Pipeline
+## Health and rollback
 
-### 3.1 Standard Cloud Deployment (Render / Railway / Heroku)
+/api/health reports process liveness and a databaseReady boolean. /api/ready returns 200 only while MongoDB is connected; data APIs return 503 when disconnected. Production startup fails after bounded unsuccessful database attempts.
 
-1. **Build Command:**
-   ```bash
-   npm run build
-   ```
-   *Explanation:* This compiles the frontend with Vite 6 into `dist/` and runs `scripts/prerender-public-routes.mjs` to generate SEO-optimized HTML snapshots for all public routes.
-
-2. **Start Command:**
-   ```bash
-   npm run start
-   ```
-   *Explanation:* Boots the hardened Express server on `PORT`, serving API endpoints under `/api`, serving prerendered HTML and static assets from `dist/` with automated security headers and caching controls.
-
----
-
-### 3.2 Linux VPS Deployment (Ubuntu 22.04 / 24.04 with PM2 & Nginx)
-
-#### Step 1: Install Dependencies & Build
-```bash
-cd /var/www/nvs-buildcon
-npm ci --omit=dev
-npm run build
-```
-
-#### Step 2: Start with PM2
-```bash
-npm install -g pm2
-pm2 start server/server.js --name "nvs-buildcon" --max-memory-restart 500M
-pm2 save
-pm2 startup
-```
-
-#### Step 3: Nginx Reverse Proxy Configuration
-```nginx
-server {
-    server_name nvsbuildcon.com www.nvsbuildcon.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Enable Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-}
-```
-
----
-
-## 4. Post-Deployment Verification
-
-1. **Verify Health Endpoint:**
-   ```bash
-   curl -i https://nvsbuildcon.com/api/health
-   ```
-   Expected response: `HTTP/1.1 200 OK` with `{"success":true,"message":"NVS Buildcon API is running"}`.
-
-2. **Verify Security Headers:**
-   ```bash
-   curl -I https://nvsbuildcon.com/api/health
-   ```
-   Confirm presence of `x-content-type-options: nosniff`, `x-frame-options`, and appropriate CORS headers.
-
-3. **Verify Prerendered SEO Pages:**
-   ```bash
-   curl -i https://nvsbuildcon.com/services | grep "prerendered-content"
-   ```
-   Confirm that search crawler HTML snapshots are returned directly in the response payload.
+Keep the previous build and environment configuration available for rollback. Rolling back code does not roll back data, and old refresh-token storage is incompatible with the hardened session format; require re-login after a rollback. Do not restore over production without an explicit approved recovery plan.

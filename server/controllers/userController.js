@@ -13,7 +13,7 @@ export const getSavedPlans = asyncHandler(async (req, res) => {
 
 export const savePlan = asyncHandler(async (req, res) => {
   const { planId } = req.body;
-  if (!planId) throw new ApiError(400, 'planId is required');
+  if (typeof planId !== 'string' || !planId) throw new ApiError(400, 'planId is required');
   const user = await User.findById(req.user.id);
   if (!user) throw new ApiError(404, 'User not found');
   

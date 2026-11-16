@@ -3,9 +3,10 @@ services:
     name: nvs-buildcon-backend
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci && npm run build
     startCommand: npm start
-    autoDeploy: true
+    autoDeploy: false
+    healthCheckPath: /api/ready
     envVars:
       - key: NODE_ENV
         value: production

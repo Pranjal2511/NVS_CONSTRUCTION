@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, Download, Mail, MessageCircle, Printer, CheckCircle, ChevronDown, ChevronUp, FileText, Sparkles } from 'lucide-react';
+import { validPricingGroups, estimatePrice, escapeHtml } from '../utils/pricing';
 import { apiFetch } from '../utils/api';
 
 interface PricingSectionProps {
@@ -108,7 +109,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
             if (data.data.customRates) {
               try {
                 const parsed = JSON.parse(data.data.customRates);
-                if (Array.isArray(parsed) && parsed.length > 0) {
+                if (validPricingGroups(parsed)) {
                   setPricingGroups(parsed);
                 }
               } catch (e) {
@@ -148,7 +149,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
 
   const quote = useMemo(() => {
     const rate = selected ? selected.rate : 0;
-    const base = Math.max(area, 0) * rate;
+    const base = estimatePrice(area, rate);
     return { base, finalPrice: base };
   }, [area, selected]);
 
@@ -185,13 +186,13 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
         <body>
           <div class="header">
             <div class="title">NVS BUILDCON &amp; ARCHITECTS</div>
-            <div class="subtitle">Official Project Quotation Estimate</div>
+            <div class="subtitle">Indicative Project Cost Estimate</div>
           </div>
           <div class="details-grid">
             <div>
               <div class="section-title">Quotation Details</div>
               <div><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
-              <div><strong>Valid For:</strong> 30 Days</div>
+              <div>Subject to a detailed quotation</div>
             </div>
             <div>
               <div class="section-title">Company Info</div>
@@ -211,7 +212,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
             </thead>
             <tbody>
               <tr>
-                <td><strong>${selected.service}</strong></td>
+                <td><strong>${escapeHtml(selected.service)}</strong></td>
                 <td>Rate: ₹${selected.rate}/sq.ft | Plot Area: ${area} sq.ft</td>
                 <td style="text-align: right;">${formatCurrency(quote.base)}</td>
               </tr>
@@ -222,7 +223,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
             </tbody>
           </table>
           <div class="disclaimer">
-            <strong>Please Note:</strong> ${disclaimer}
+            <strong>Please Note:</strong> ${escapeHtml(disclaimer)}
           </div>
           <div class="footer">
             Smart Planning &bull; Modern Design &bull; Practical Construction
@@ -412,7 +413,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
             <span className="p-3 bg-brand-gold/10 text-brand-gold rounded-xl"><Calculator size={22} /></span>
             <div>
               <h3 className="font-display text-lg font-black uppercase tracking-wider text-white">Premium Price Calculator</h3>
-              <p className="text-[10px] text-brand-on-surface-variant/55 uppercase tracking-widest">Compute exact design quotes with custom tax and discounts</p>
+              <p className="text-[10px] text-brand-on-surface-variant/55 uppercase tracking-widest">Calculate an indicative design estimate</p>
             </div>
           </div>
 
@@ -464,7 +465,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
                 
                 <div className="space-y-4 text-xs md:text-sm">
                   <div className="pt-4 flex justify-between items-center gap-4">
-                    <span className="font-display text-sm uppercase tracking-wider text-brand-gold font-black">Final Price</span>
+                    <span className="font-display text-sm uppercase tracking-wider text-brand-gold font-black">Estimated Price</span>
                     <strong className="font-display text-3xl text-brand-gold font-black font-mono">{formatCurrency(quote.finalPrice)}</strong>
                   </div>
                 </div>
@@ -495,7 +496,7 @@ export default function PricingSection({ onOpenQuoteForm }: PricingSectionProps)
                     <MessageCircle size={13} /> WhatsApp Quote
                   </button>
                   <a
-                    href={`mailto:?subject=NVS Buildcon Quotation Estimate&body=Service: ${selected.service}%0AArea: ${area} sq.ft%0ARate: ₹${selected.rate}/sq.ft%0AFinal Price Quote: ${formatCurrency(quote.finalPrice)}`}
+                    href={`mailto:?subject=NVS Buildcon Quotation Estimate&body=Service: ${selected.service}%0AArea: ${area} sq.ft%0ARate: ₹${selected.rate}/sq.ft%0AIndicative Estimate: ${formatCurrency(quote.finalPrice)}`}
                     className="py-3 px-4 border border-white/10 hover:bg-white/5 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all text-center"
                   >
                     <Mail size={13} /> Email Quote

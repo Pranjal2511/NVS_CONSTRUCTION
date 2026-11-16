@@ -3,7 +3,7 @@ import ApiError from '../utils/ApiError.js';
 import logger from '../utils/logger.js';
 
 export const notFound = (req, _res, next) => {
-  next(new ApiError(404, `Route not found: ${req.method} ${req.originalUrl}`));
+  next(new ApiError(404, `Route not found: ${req.method} ${req.path}`));
 };
 
 export const errorHandler = (err, req, res, _next) => {
@@ -29,14 +29,20 @@ export const errorHandler = (err, req, res, _next) => {
     message = 'Invalid ID format';
   }
 
+  if (['MongoNetworkError', 'MongoServerSelectionError', 'MongooseServerSelectionError', 'MongoNotConnectedError'].includes(err.name) || /bufferCommands = false/.test(message)) {
+    statusCode = 503;
+    message = 'Database temporarily unavailable. Please retry shortly.';
+  }
+  if (err.name === 'MulterError') { statusCode = 400; message = 'Upload exceeds file size or count limits'; }
   if (statusCode >= 500) {
-    logger.error(message, {
-      path: req.originalUrl,
+    logger.error('Request failed', {
+      path: req.path,
       method: req.method,
-      stack: env.NODE_ENV === 'development' ? err.stack : undefined,
+      errorType: err.name,
     });
   }
 
+  if (statusCode === 500) { message = 'Internal server error'; errors = []; }
   res.status(statusCode).json({
     success: false,
     message,

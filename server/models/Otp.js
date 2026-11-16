@@ -16,6 +16,7 @@ const otpSchema = new mongoose.Schema(
 );
 
 otpSchema.set('toJSON', jsonOptions);
+otpSchema.index({ identifier: 1, role: 1 }, { unique: true });
 otpSchema.set('toObject', jsonOptions);
 
 const Otp = mongoose.model('Otp', otpSchema);

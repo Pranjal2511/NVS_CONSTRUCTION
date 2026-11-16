@@ -1,9 +1,6 @@
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import User from '../models/User.js';
 import Project from '../models/Project.js';
 import HousePlan from '../models/HousePlan.js';
 import Gallery from '../models/Gallery.js';
@@ -11,8 +8,6 @@ import SiteSettings from '../models/SiteSettings.js';
 import Blog from '../models/Blog.js';
 import Service from '../models/Service.js';
 import Testimonial from '../models/Testimonial.js';
-import env from '../config/env.js';
-import logger from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,11 +17,12 @@ const loadSeedData = () => {
   return JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
 };
 
-export const seedDatabase = async () => {
+export const getSeedEntries = async () => {
+  const entries = [];
+  const add = (Model, records, keys) => { for (const record of records) entries.push({ Model, record, keys }); };
   try {
-    const settingsCount = await SiteSettings.countDocuments();
-    if (settingsCount === 0) {
-      await SiteSettings.create({
+    {
+      add(SiteSettings, [{
         companyPhone: '+918009363259',
         whatsappNumber: '+918009363259',
         emailForNotifications: 'admin@nvsbuildcon.com',
@@ -36,46 +32,12 @@ export const seedDatabase = async () => {
         heroHeading: 'Engineering Luxury. Crafting Legacy.',
         heroSubheading:
           'Bespoke architectural execution, Vastu-compliant layouts, and structural blueprints engineered for precision.',
-      });
-      logger.info('Seeded default site settings');
-    }
-
-    const adminCount = await User.countDocuments({ role: 'admin' });
-    if (adminCount === 0) {
-      const seedPassword = process.env.ADMIN_SEED_PASSWORD;
-      if (!seedPassword || seedPassword === 'AdminPassword123!' || seedPassword.length < 8) {
-        if (env.IS_PRODUCTION) {
-          logger.error('CRITICAL: Admin account cannot be seeded in production without a secure ADMIN_SEED_PASSWORD environment variable (min 8 chars). Skipping admin creation.');
-        } else {
-          const tempPassword = crypto.randomBytes(12).toString('base64url');
-          const hashedPassword = await bcrypt.hash(tempPassword, env.BCRYPT_ROUNDS);
-          await User.create({
-            name: 'NVS Admin',
-            email: 'admin@nvsbuildcon.com',
-            phone: '+918009363259',
-            password: hashedPassword,
-            role: 'admin',
-            isVerified: true,
-          });
-          logger.warn(`Generated random temporary dev admin password: ${tempPassword}. Please change immediately or set ADMIN_SEED_PASSWORD.`);
-        }
-      } else {
-        const hashedPassword = await bcrypt.hash(seedPassword, env.BCRYPT_ROUNDS);
-        await User.create({
-          name: 'NVS Admin',
-          email: 'admin@nvsbuildcon.com',
-          phone: '+918009363259',
-          password: hashedPassword,
-          role: 'admin',
-          isVerified: true,
-        });
-        logger.info('Seeded admin account from ADMIN_SEED_PASSWORD environment variable');
-      }
+      }], []);
     }
 
     const seedData = loadSeedData();
 
-    if (seedData && (await Project.countDocuments()) === 0) {
+    if (seedData) {
       const mapped = seedData.PROJECTS_DATA.map((p) => ({
         customId: p.id,
         title: p.title,
@@ -92,11 +54,11 @@ export const seedDatabase = async () => {
         images: [p.imageUrl],
         pdfs: [],
       }));
-      await Project.insertMany(mapped);
-      logger.info(`Seeded ${mapped.length} projects`);
+      add(Project, mapped, ["customId"]);
+
     }
 
-    if (seedData && (await HousePlan.countDocuments()) === 0) {
+    if (seedData) {
       const mapped = seedData.BLUEPRINTS_DATA.map((bp) => ({
         customId: bp.id,
         title: bp.title,
@@ -114,11 +76,11 @@ export const seedDatabase = async () => {
         cars: bp.cars || 0,
         specs: bp.specs || {},
       }));
-      await HousePlan.insertMany(mapped);
-      logger.info(`Seeded ${mapped.length} house plans`);
+      add(HousePlan, mapped, ["customId"]);
+
     }
 
-    if (seedData && (await Gallery.countDocuments()) === 0) {
+    if (seedData) {
       const mapped = seedData.GALLERY_DATA.map((g) => ({
         title: g.title,
         category: g.category,
@@ -126,12 +88,12 @@ export const seedDatabase = async () => {
         desc: g.desc,
         alt: g.alt,
       }));
-      await Gallery.insertMany(mapped);
-      logger.info(`Seeded ${mapped.length} gallery items`);
+      add(Gallery, mapped, ["title","imageUrl"]);
+
     }
 
-    if ((await Service.countDocuments()) === 0) {
-      await Service.insertMany([
+    if (true) {
+      add(Service, [
         {
           title: 'Architectural Design Division',
           description:
@@ -153,11 +115,10 @@ export const seedDatabase = async () => {
           icon: 'Landmark',
           details: ['Luxury Master Suites', 'Modular Kitchen Layouts', 'Acoustic Wall Panels', 'Architectural Light Fields'],
         },
-      ]);
-      logger.info('Seeded default services');
+      ], ['title']);
     }
 
-    if (seedData && (await Testimonial.countDocuments()) === 0) {
+    if (seedData) {
       const mapped = seedData.TESTIMONIALS_DATA.map((t) => ({
         name: t.name,
         clientName: t.name,
@@ -165,12 +126,12 @@ export const seedDatabase = async () => {
         rating: t.rating,
         review: t.review,
       }));
-      await Testimonial.insertMany(mapped);
-      logger.info(`Seeded ${mapped.length} testimonials`);
+      add(Testimonial, mapped, ["name","review"]);
+
     }
 
-    if ((await Blog.countDocuments()) === 0) {
-      await Blog.insertMany([
+    if (true) {
+      add(Blog, [
         {
           title: 'The Principles of Modernist Residential Vastu',
           slug: 'modernist-residential-vastu',
@@ -191,10 +152,25 @@ export const seedDatabase = async () => {
           category: 'Commercial',
           tags: ['steel', 'commercial', 'engineering'],
         },
-      ]);
-      logger.info('Seeded default blogs');
+      ], ['slug']);
     }
-  } catch (err) {
-    logger.error('Database seeding failed', { message: err.message });
+    return entries;
+  } catch (err) { throw err; }
+};
+
+export const seedDatabase = async ({ apply = false } = {}) => {
+  const entries = await getSeedEntries();
+  // Validate every supplied record before any writes.
+  for (const { Model, record } of entries) await new Model(record).validate();
+  const result = { existing: 0, missing: 0, inserted: 0 };
+  for (const { Model, record, keys } of entries) {
+    const filter = Object.fromEntries(keys.map(key => [key, record[key]]));
+    if (await Model.exists(filter)) { result.existing++; continue; }
+    result.missing++;
+    if (apply) {
+      const outcome = await Model.updateOne(filter, { $setOnInsert: record }, { upsert: true, runValidators: true, setDefaultsOnInsert: true });
+      result.inserted += outcome.upsertedCount;
+    }
   }
+  return result;
 };

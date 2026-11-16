@@ -56,7 +56,7 @@ export const forgotPasswordValidator = [emailValidator];
 export const resetPasswordValidator = [
   body('token').notEmpty(),
   body('newPassword').custom((value, { req }) => {
-    if (!value && req.body.password) return true;
+    value = value || req.body.password;
     if (!value) throw new Error('New password is required');
     if (value.length < 8) throw new Error('Password must be at least 8 characters');
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(value)) {

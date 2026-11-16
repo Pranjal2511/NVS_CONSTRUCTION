@@ -1,3 +1,4 @@
+import { duplicateSubmission } from '../middleware/duplicateSubmission.js';
 import { Router } from 'express';
 import * as appointmentController from '../controllers/appointmentController.js';
 import { validate } from '../middleware/validate.js';
@@ -8,7 +9,7 @@ import { verifyCaptcha } from '../middleware/captcha.js';
 
 const router = Router();
 
-router.post('/', submissionLimiter, verifyCaptcha, optionalAuth, createAppointmentValidator, validate, appointmentController.bookAppointment);
+router.post('/', submissionLimiter, verifyCaptcha, optionalAuth, createAppointmentValidator, validate, duplicateSubmission, appointmentController.bookAppointment);
 router.get('/', adminOnly, appointmentController.getAllAppointments);
 router.get('/mine', authenticate, appointmentController.getUserAppointments);
 router.patch('/:id', adminOnly, updateAppointmentValidator, validate, appointmentController.updateAppointment);

@@ -5,10 +5,25 @@
 
 import http from 'http';
 import assert from 'assert';
-import app from '../server/app.js';
+import crypto from 'node:crypto';
+process.env.NODE_ENV = 'test';
+process.env.IS_PRODUCTION = 'false';
+process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex');
+process.env.JWT_REFRESH_SECRET = crypto.randomBytes(48).toString('hex');
+process.env.HCAPTCHA_SECRET = '';
+process.env.SMTP_USER = '';
+process.env.SMTP_PASS = '';
+process.env.RESEND_API_KEY = '';
+process.env.EMAIL_PROVIDER = 'smtp';
+const { default: app } = await import('../server/app.js');
+const { default: mongoose } = await import('mongoose');
+const { default: User } = await import('../server/models/User.js');
+// Model stubs only: no database connection is ever opened.
+Object.defineProperty(mongoose.connection, 'readyState', { configurable: true, get: () => 1 });
+User.findById = async () => ({ role: 'user', isVerified: true, sessionVersion: 0 });
 import { escapeRegex } from '../server/utils/regex.js';
-import { generateAccessToken, getTokenPayload } from '../server/utils/jwt.js';
-import { formatAuthResponse } from '../server/services/authService.js';
+const { generateAccessToken } = await import('../server/utils/jwt.js');
+const { formatAuthResponse } = await import('../server/services/authService.js');
 
 let server;
 let baseUrl;
@@ -102,7 +117,8 @@ test('formatAuthResponse: does NOT expose refreshToken in JSON payload', () => {
     },
   };
   const response = formatAuthResponse(mockTokens);
-  assert.strictEqual(response.token, 'mock_access_token_123');
+  assert.strictEqual(response.token, undefined);
+  assert.strictEqual(response.accessToken, undefined);
   assert.strictEqual(response.refreshToken, undefined, 'refreshToken must NOT be exposed in JSON response body');
   assert.strictEqual(response.user.email, 'client@example.com');
 });
@@ -215,6 +231,23 @@ test('House Plan Request: Requires authentication (401)', async () => {
   assert.strictEqual(res.status, 401);
   const data = await res.json();
   assert.strictEqual(data.success, false);
+});
+
+// ----------------------------------------------------
+// 7. REGRESSION: SEARCH SECURITY (escapeRegex applied)
+// ----------------------------------------------------
+test('escapeRegex: project/gallery search metacharacters handled literally', () => {
+  const dangerous = 'title.*+?^${}()|[]\\world';
+  const escaped = escapeRegex(dangerous);
+  assert.strictEqual(escaped, 'title\\.\\*\\+\\?\\^\\$\\{\\}\\(\\)\\|\\[\\]\\\\world');
+  assert.ok(!escaped.includes('.*'));
+  assert.ok(!escaped.includes('+?'));
+});
+
+test('escapeRegex: caps query length to prevent ReDoS on search', () => {
+  const huge = 'a'.repeat(500);
+  const escaped = escapeRegex(huge);
+  assert.strictEqual(escaped.length, 100);
 });
 
 run();

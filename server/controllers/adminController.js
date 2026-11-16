@@ -72,7 +72,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   if (req.body.role && ['admin', 'user'].includes(req.body.role)) updates.role = req.body.role;
   if (req.body.sharedPdfs) updates.sharedPdfs = req.body.sharedPdfs;
 
-  const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true }).select('-password');
+  const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true }).select('-password');
 
   if (req.body.sharedPdfs && req.body.sharedPdfs.length > (target.sharedPdfs || []).length) {
     try {

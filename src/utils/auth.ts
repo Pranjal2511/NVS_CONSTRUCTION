@@ -66,9 +66,7 @@ export const verifyLoginOtp = async (identifier: string, otp: string, role: 'adm
     throw new Error(errorData.message || 'OTP verification failed');
   }
   const data = await res.json();
-  if (data.token || data.accessToken) {
-    localStorage.setItem('authToken', data.token || data.accessToken);
-  }
+  localStorage.removeItem('authToken');
   if (data.user?.role) {
     storeRole(data.user.role);
   }
@@ -88,9 +86,7 @@ export const loginWithPassword = async (email: string, password: string): Promis
     throw new Error(errorData.message || 'Login failed');
   }
   const data = await res.json();
-  if (data.token || data.accessToken) {
-    localStorage.setItem('authToken', data.token || data.accessToken);
-  }
+  localStorage.removeItem('authToken');
   if (data.user?.role) {
     storeRole(data.user.role);
   }
@@ -176,21 +172,13 @@ export const fetchUserProfile = async (): Promise<AuthUser | null> => {
 };
 
 export const logout = async (): Promise<void> => {
-  try {
-    await apiFetch('/api/auth/logout', { method: 'POST' });
-  } catch {
-    // Logout network failure is non-critical; local auth state is still cleared below
-  } finally {
-    clearAuth();
-  }
+  const response = await apiFetch('/api/auth/logout', { method: 'POST' });
+  if (!response.ok) throw new Error('Unable to end the session. Please check your connection and retry logout.');
+  clearAuth();
 };
 
 export const signOutAllDevices = async (): Promise<void> => {
-  try {
-    await apiFetch('/api/auth/sign-out-all', { method: 'POST' });
-  } catch {
-    // Ignore network error
-  } finally {
-    clearAuth();
-  }
+  const response = await apiFetch('/api/auth/sign-out-all', { method: 'POST' });
+  if (!response.ok) throw new Error('Unable to revoke sessions. Please retry shortly.');
+  clearAuth();
 };

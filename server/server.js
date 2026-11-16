@@ -1,4 +1,5 @@
 import fs from 'fs';
+import mongoose from 'mongoose';
 import path from 'path';
 import express from 'express';
 import { fileURLToPath } from 'url';
@@ -11,6 +12,21 @@ import { notFound, errorHandler } from './middleware/errorHandler.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+let viteServer;
+let httpServer;
+let stopping = false;
+async function shutdown() {
+  if (stopping) return;
+  stopping = true;
+  const deadline = setTimeout(() => process.exit(1), 10000);
+  deadline.unref();
+  if (httpServer) await new Promise(resolve => httpServer.close(resolve));
+  await viteServer?.close();
+  await mongoose.disconnect();
+  clearTimeout(deadline);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -27,6 +43,7 @@ const setupFrontend = async () => {
       appType: 'custom',
     });
 
+    viteServer = vite;
     app.use(vite.middlewares);
 
     app.use('*', async (req, res, next) => {
@@ -74,7 +91,7 @@ const setupFrontend = async () => {
 };
 
 const startServer = async () => {
-  if (env.NODE_ENV === 'production') {
+  if (env.IS_PRODUCTION) {
     await connectDB();
   }
 
@@ -83,11 +100,16 @@ const startServer = async () => {
   app.use(notFound);
   app.use(errorHandler);
 
-  app.listen(env.PORT, () => {
+  httpServer = app.listen(env.PORT, () => {
     logger.info(`NVS Buildcon server running on port ${env.PORT}`);
   });
 
-  if (env.NODE_ENV !== 'production') {
+  httpServer.on('error', async (err) => {
+    logger.error(err.code === 'EADDRINUSE' ? 'Configured PORT is already in use; stop its owner or choose another PORT.' : 'HTTP server failed');
+    await shutdown();
+    process.exitCode = 1;
+  });
+  if (!env.IS_PRODUCTION) {
     connectDB().catch((err) => {
       logger.warn('Database startup check failed in development', { message: err.message });
     });

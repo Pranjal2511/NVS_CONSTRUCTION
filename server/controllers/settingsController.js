@@ -1,3 +1,4 @@
+import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import SiteSettings from '../models/SiteSettings.js';
@@ -6,7 +7,7 @@ import { logAudit } from '../services/auditService.js';
 
 export const getSettings = asyncHandler(async (_req, res) => {
   let settings = await SiteSettings.findOne();
-  if (!settings) settings = await SiteSettings.create({});
+  if (!settings) throw new ApiError(503, 'Site settings have not been initialized by the operator');
   ApiResponse.success(res, 200, 'Settings retrieved', settings);
 });
 

@@ -1,3 +1,4 @@
+import HCaptchaWidget from './HCaptchaWidget';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -36,6 +37,8 @@ export default function BookConsultationModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -59,7 +62,7 @@ export default function BookConsultationModal({
       const res = await apiFetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 'h-captcha-response': captchaToken,
           name,
           email,
           phone,
@@ -86,6 +89,7 @@ export default function BookConsultationModal({
     } catch (err: any) {
       setError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setLoading(false);
     }
   };
@@ -299,7 +303,8 @@ export default function BookConsultationModal({
                 <p className="text-center text-[9px] text-brand-on-surface-variant/40 uppercase tracking-wider">
                   We'll confirm your slot via WhatsApp within 2 hours
                 </p>
-              </form>
+              <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+</form>
             )}
           </div>
         </motion.div>

@@ -1,19 +1,19 @@
 import helmet from 'helmet';
 import cors from 'cors';
 import env from '../config/env.js';
-import logger from '../utils/logger.js';
-
-// Warn on startup if running without secure CORS enforcement
-if (!env.IS_PRODUCTION) {
-  logger.warn(
-    'CORS is in permissive mode (IS_PRODUCTION=false). ' +
-      'All origins are allowed. Do NOT use this in a publicly accessible deployment.',
-    { IS_PRODUCTION: env.IS_PRODUCTION }
-  );
-}
+import ApiError from '../utils/ApiError.js';
 
 export const helmetMiddleware = helmet({
-  contentSecurityPolicy: env.IS_PRODUCTION ? undefined : false,
+  contentSecurityPolicy: env.IS_PRODUCTION ? { directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
+    frameSrc: ["'self'", 'https://hcaptcha.com', 'https://*.hcaptcha.com', 'https://www.google.com'],
+    connectSrc: ["'self'", 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
+    imgSrc: ["'self'", 'data:', 'https:'],
+    mediaSrc: ["'self'", 'https://res.cloudinary.com'],
+    styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://hcaptcha.com', 'https://*.hcaptcha.com'],
+    fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+  } } : false,
   crossOriginEmbedderPolicy: false,
 });
 
@@ -29,7 +29,7 @@ const parseAllowedOrigins = () => {
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
     // Allow non-browser requests (e.g. server-to-server, mobile, curl) or if permissive mode is enabled
-    if (!origin || !env.IS_PRODUCTION) {
+    if (!origin) {
       return callback(null, true);
     }
 
@@ -41,19 +41,17 @@ export const corsMiddleware = cors({
       return callback(null, true);
     }
 
-    // Allow any Vercel deployment domain for the project
-    if (/^https:\/\/[a-zA-Z0-9-_.]+\.vercel\.app$/.test(normalizedOrigin)) {
-      return callback(null, true);
-    }
-
-    // Allow localhost/127.0.0.1 for local dev even if IS_PRODUCTION flag is accidentally set
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
+    return callback(new ApiError(403, 'Origin not allowed'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
 });
+
+export const csrfProtection = (req, _res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const origin = req.headers.origin;
+  if ((origin && !parseAllowedOrigins().includes(origin)) || (!origin && req.headers['sec-fetch-site'] === 'cross-site')) return next(new ApiError(403, 'Request origin not allowed'));
+  if (!origin && (req.cookies?.accessToken || req.cookies?.refreshToken)) return next(new ApiError(403, 'Origin header required for cookie-authenticated writes'));
+  next();
+};

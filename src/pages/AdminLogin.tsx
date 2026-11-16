@@ -12,7 +12,6 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [otp, setOtp] = useState('');
   const [otpSentTo, setOtpSentTo] = useState('');
   const [otpChannel, setOtpChannel] = useState<'email' | 'phone' | null>(null);
-  const [devOtp, setDevOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,7 +30,6 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       const challenge = await loginAdmin(identifier);
       setOtpSentTo(challenge.identifier);
       setOtpChannel(challenge.channel);
-      setDevOtp(challenge.devOtp || '');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Admin authentication failed.');
     } finally {

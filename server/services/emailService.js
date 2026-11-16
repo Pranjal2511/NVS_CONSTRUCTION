@@ -10,7 +10,7 @@ if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+const resend = env.EMAIL_PROVIDER === 'resend' && env.RESEND_API_KEY && !env.RESEND_API_KEY.includes('your_') ? new Resend(env.RESEND_API_KEY) : null;
 let transporter = null;
 
 export const resetTransporter = () => {
@@ -21,40 +21,25 @@ const getTransporter = () => {
   if (transporter) return transporter;
   if (!env.SMTP_USER || !env.SMTP_PASS) return null;
 
-  const isGmail = env.SMTP_HOST?.includes('gmail') || env.SMTP_USER?.includes('@gmail.com');
-  const cleanPass = env.SMTP_PASS.replace(/\s+/g, '');
-  const cleanUser = env.SMTP_USER.trim();
-
-  if (isGmail) {
-    // Gmail-optimized configuration
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      auth: {
-        user: cleanUser,
-        pass: cleanPass,
-      },
-    });
-  } else {
-    transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST || 'smtp.gmail.com',
-      port: env.SMTP_PORT || 465,
-      secure: env.SMTP_SECURE ?? (env.SMTP_PORT === 465),
-      family: 4,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      auth: {
-        user: cleanUser,
-        pass: cleanPass,
-      },
-    });
-  }
+  const options = smtpOptions();
+  transporter = nodemailer.createTransport(options);
   return transporter;
 };
 
+export const smtpOptions = () => {
+  const port = env.SMTP_PORT;
+  if ((port === 587 && env.SMTP_SECURE) || (port === 465 && !env.SMTP_SECURE)) throw new Error('SMTP port/security mismatch: use 587/false or 465/true');
+  const host = env.SMTP_HOST || 'smtp.gmail.com';
+  return { host, port, secure: env.SMTP_SECURE, requireTLS: !env.SMTP_SECURE,
+    connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
+    auth: { user: env.SMTP_USER?.trim(), pass: host === 'smtp.gmail.com' ? env.SMTP_PASS?.replace(/\s+/g, '') : env.SMTP_PASS } };
+};
+export const verifyEmailTransport = async () => {
+  if (env.EMAIL_PROVIDER === 'resend') throw new Error('SMTP verification does not apply to Resend; verify API key scope and sender domain in the Resend dashboard');
+  const transport = getTransporter();
+  if (!transport) throw new Error('SMTP credentials are not configured');
+  try { await transport.verify(); return true; } finally { transport.close(); resetTransporter(); }
+};
 export const isEmailTransportConfigured = () => {
   return Boolean(env.RESEND_API_KEY || (env.SMTP_USER && env.SMTP_PASS));
 };
@@ -65,6 +50,8 @@ const getAdminEmail = async () => {
 };
 
 export const sendEmail = async ({ to, subject, text, html }) => {
+  if (!['smtp', 'resend'].includes(env.EMAIL_PROVIDER)) throw new Error('Invalid EMAIL_PROVIDER');
+  if (env.EMAIL_PROVIDER === 'resend' && !resend) throw new Error('Resend is not configured');
   // 1. If Resend is configured, use Resend HTTPS API (Port 443, never blocked on Render/Vercel)
   if (resend) {
     try {
@@ -78,14 +65,14 @@ export const sendEmail = async ({ to, subject, text, html }) => {
       });
 
       if (error) {
-        logger.error('Resend API error sending email', { error, to, subject });
+        logger.error('Resend API error sending email', { provider: 'resend' });
         throw new Error(error.message || 'Failed to send email via Resend');
       }
 
-      logger.info('Email sent successfully via Resend API', { id: data?.id, to, subject });
+      logger.info('Email sent successfully via Resend API', { id: data?.id });
       return true;
     } catch (err) {
-      logger.error('Resend exception', { message: err.message, to, subject });
+      logger.error('Resend exception', { provider: 'resend' });
       throw err;
     }
   }
@@ -105,15 +92,15 @@ export const sendEmail = async ({ to, subject, text, html }) => {
       text,
       html,
     });
-    logger.info('Email sent successfully via SMTP', { to, subject });
+    logger.info('Email sent successfully via SMTP', { provider: 'smtp' });
     return true;
   } catch (err) {
     if (err.message && (err.message.includes('535') || err.message.includes('Username and Password not accepted') || err.message.includes('BadCredentials'))) {
       resetTransporter();
-      logger.error('SMTP Authentication failure', { error: err.message, to });
+      logger.error('SMTP Authentication failure', { provider: 'smtp' });
       throw new Error('Gmail SMTP authentication failed: Invalid login credentials. For Gmail, you must generate and use a 16-character Google App Password (not your personal account password). Visit https://myaccount.google.com/apppasswords to generate one.');
     }
-    logger.error('SMTP delivery error', { error: err.message, to });
+    logger.error('SMTP delivery error', { provider: 'smtp' });
     throw new Error(`Email delivery failed: ${err.message}`);
   }
 };

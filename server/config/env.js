@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'test') dotenv.config({ quiet: true });
 
 // ---------------------------------------------------------------------------
 // IS_PRODUCTION: explicit boolean env var so staging/preview environments can
 // opt-in to production-grade security without NODE_ENV tricks.
 // ---------------------------------------------------------------------------
-const IS_PRODUCTION = process.env.IS_PRODUCTION === 'true';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' || process.env.IS_PRODUCTION === 'true';
 
 // ---------------------------------------------------------------------------
 // JWT secret validation — enforced regardless of NODE_ENV.
@@ -15,16 +15,16 @@ const IS_PRODUCTION = process.env.IS_PRODUCTION === 'true';
 const jwtSecret = process.env.JWT_SECRET;
 const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
 
-if (!jwtSecret || jwtSecret.length < 32) {
+if (!jwtSecret || jwtSecret.length < 32 || /your_|placeholder/i.test(jwtSecret)) {
   throw new Error(
     '[FATAL] JWT_SECRET is missing or shorter than 32 characters. ' +
       'Set a cryptographically strong secret and restart the server.'
   );
 }
 
-if (!jwtRefreshSecret || jwtRefreshSecret.length < 32) {
+if (!jwtRefreshSecret || jwtRefreshSecret.length < 32 || jwtRefreshSecret === jwtSecret || /your_|placeholder/i.test(jwtRefreshSecret)) {
   throw new Error(
-    '[FATAL] JWT_REFRESH_SECRET is missing or shorter than 32 characters. ' +
+    '[FATAL] JWT_REFRESH_SECRET must be non-placeholder, at least 32 characters, and different from JWT_SECRET. ' +
       'Set a cryptographically strong secret and restart the server.'
   );
 }
@@ -47,8 +47,9 @@ const env = {
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || '7d',
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
   SMTP_HOST: process.env.SMTP_HOST,
+  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('your_') ? 'resend' : 'smtp'),
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
-  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  SMTP_SECURE: process.env.SMTP_SECURE === undefined ? process.env.SMTP_PORT === '465' : process.env.SMTP_SECURE === 'true',
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   SMTP_FROM: process.env.SMTP_FROM || '"NVS Buildcon" <noreply@nvsbuildcon.com>',

@@ -1,3 +1,4 @@
+import { writableFields } from '../utils/writableFields.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import Blog from '../models/Blog.js';
@@ -9,8 +10,8 @@ import { escapeRegex } from '../utils/regex.js';
 export const getBlogs = asyncHandler(async (req, res) => {
   const { category, search, tag } = req.query;
   const filter = { published: { $ne: false } };
-  if (category) filter.category = category;
-  if (tag) filter.tags = tag;
+  if (typeof category === 'string' && category.length <= 100) filter.category = category;
+  if (typeof tag === 'string' && tag.length <= 100) filter.tags = tag;
   if (search) {
     const safeSearch = escapeRegex(search);
     if (safeSearch) {
@@ -20,7 +21,7 @@ export const getBlogs = asyncHandler(async (req, res) => {
       ];
     }
   }
-  const blogs = await Blog.find(filter).sort({ createdAt: -1 });
+  const blogs = await Blog.find(filter).sort({ createdAt: -1 }).limit(100);
   ApiResponse.success(res, 200, 'Blogs retrieved', blogs);
 });
 
@@ -35,7 +36,7 @@ export const getBlogBySlug = asyncHandler(async (req, res) => {
 });
 
 export const createBlog = asyncHandler(async (req, res) => {
-  const data = { ...req.body };
+  const data = writableFields('Blog', req.body);
   data.slug = data.slug || slugify(data.title);
   if (data.featuredImage) data.imageUrl = data.featuredImage;
   const blog = await Blog.create(data);
@@ -44,7 +45,7 @@ export const createBlog = asyncHandler(async (req, res) => {
 });
 
 export const updateBlog = asyncHandler(async (req, res) => {
-  const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const blog = await Blog.findByIdAndUpdate(req.params.id, writableFields('Blog', req.body), { new: true, runValidators: true });
   if (!blog) throw new ApiError(404, 'Blog not found');
   await logAudit({ userId: req.user.id, action: 'UPDATE_BLOG', resource: 'Blog', resourceId: blog.id, req });
   ApiResponse.success(res, 200, 'Blog updated', blog);

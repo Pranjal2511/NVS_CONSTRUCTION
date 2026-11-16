@@ -1,3 +1,4 @@
+import { writableFields } from '../utils/writableFields.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import HousePlan from '../models/HousePlan.js';
@@ -13,7 +14,7 @@ import { escapeRegex } from '../utils/regex.js';
 export const getHousePlans = asyncHandler(async (req, res) => {
   const { category, search } = req.query;
   const filter = {};
-  if (category) filter.category = category;
+  if (typeof category === 'string' && category.length <= 100) filter.category = category;
   if (search) {
     const safeSearch = escapeRegex(search);
     if (safeSearch) {
@@ -24,7 +25,7 @@ export const getHousePlans = asyncHandler(async (req, res) => {
       ];
     }
   }
-  const plans = await HousePlan.find(filter).sort({ createdAt: -1 });
+  const plans = await HousePlan.find(filter).sort({ createdAt: -1 }).limit(100);
   ApiResponse.success(res, 200, 'House plans retrieved', plans);
 });
 
@@ -35,7 +36,7 @@ export const getHousePlan = asyncHandler(async (req, res) => {
 });
 
 export const createHousePlan = asyncHandler(async (req, res) => {
-  const data = { ...req.body };
+  const data = writableFields('HousePlan', req.body);
   if (data.title && !data.customId) data.customId = slugify(data.title);
   if (data.previewImage) data.imageUrl = data.previewImage;
   if (data.pdf) data.pdfUrl = data.pdf;
@@ -45,7 +46,7 @@ export const createHousePlan = asyncHandler(async (req, res) => {
 });
 
 export const updateHousePlan = asyncHandler(async (req, res) => {
-  const plan = await HousePlan.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const plan = await HousePlan.findByIdAndUpdate(req.params.id, writableFields('HousePlan', req.body), { new: true, runValidators: true });
   if (!plan) throw new ApiError(404, 'House plan not found');
   await logAudit({ userId: req.user.id, action: 'UPDATE_HOUSE_PLAN', resource: 'HousePlan', resourceId: plan.id, req });
   ApiResponse.success(res, 200, 'House plan updated', plan);
@@ -63,13 +64,16 @@ export const requestHousePlan = asyncHandler(async (req, res) => {
   if (!plan) throw new ApiError(404, 'House plan not found');
 
   const user = await User.findById(req.user.id);
+  if (!user) throw new ApiError(404, 'User not found');
+  const phone = user.phone || req.body.phone;
+  if (typeof phone !== 'string' || !phone.trim()) throw new ApiError(400, 'A contact phone number is required');
   const enquiry = await Enquiry.create({
-    name: user?.name || req.body.name || 'Registered User',
-    phone: user?.phone || req.body.phone || 'N/A',
+    name: user.name,
+    phone,
     email: user?.email || req.user.email,
     service: 'House Plan Request',
     blueprintTitle: plan.title,
-    message: req.body.message || `Customer requested house plan: ${plan.title} (Category: ${plan.category}, Area: ${plan.sqft || 'N/A'} sqft)`,
+    message: req.body.message || `Customer requested house plan: ${plan.title} (Category: ${plan.category}, Area: ${plan.area || 'N/A'} sqft)`,
     userId: req.user.id,
   });
 

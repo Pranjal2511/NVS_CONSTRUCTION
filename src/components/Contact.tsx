@@ -1,3 +1,4 @@
+import HCaptchaWidget from './HCaptchaWidget';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -30,6 +31,8 @@ export default function Contact({ onInquire }: ContactProps) {
   const [activeTab, setActiveTab] = useState<'message' | 'consultation'>('message');
 
   // ── Message Form State ───────────────────────────
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -65,7 +68,7 @@ export default function Contact({ onInquire }: ContactProps) {
       const res = await apiFetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email, service, message }),
+        body: JSON.stringify({ 'h-captcha-response': captchaToken, name, phone, email, service, message }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -73,12 +76,14 @@ export default function Contact({ onInquire }: ContactProps) {
       }
       setIsSubmitted(true);
       const saved = localStorage.getItem('nvs_inquiries');
-      const past = saved ? JSON.parse(saved) : [];
+      let past = [];
+      try { const parsed = saved ? JSON.parse(saved) : []; past = Array.isArray(parsed) ? parsed : []; } catch { /* Ignore corrupted local history. */ }
       localStorage.setItem('nvs_inquiries', JSON.stringify([{ id: Math.random().toString(36).substr(2, 9), name, email, phone, service, message, date: new Date().toLocaleDateString(), status: 'New' }, ...past]));
       setName(''); setEmail(''); setPhone(''); setMessage('');
     } catch (err: any) {
       setError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setLoading(false);
     }
   };
@@ -95,7 +100,7 @@ export default function Contact({ onInquire }: ContactProps) {
       const res = await apiFetch('/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify({ 'h-captcha-response': captchaToken,
           name: cName, email: cEmail, phone: cPhone,
           service: cService, date: cDate, time: cTime,
           preferredDate: cDate, preferredTime: cTime, notes: cNotes,
@@ -110,6 +115,7 @@ export default function Contact({ onInquire }: ContactProps) {
     } catch (err: any) {
       setCError(err.message || 'Server error. Please try again.');
     } finally {
+      setCaptchaToken(''); setCaptchaAttempt(value => value + 1);
       setCLoading(false);
     }
   };
@@ -299,7 +305,8 @@ export default function Contact({ onInquire }: ContactProps) {
                         {loading ? <><Loader2 size={14} className="animate-spin" /> Sending...</> : <><Send size={14} /> Send Message</>}
                       </button>
                     </div>
-                  </form>
+                  <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+</form>
                 )}
               </motion.div>
             ) : (
@@ -403,7 +410,8 @@ export default function Contact({ onInquire }: ContactProps) {
                       </button>
                       <p className="text-center text-[9px] text-brand-on-surface-variant/40 uppercase tracking-wider">Slot confirmed via WhatsApp within 2 hours</p>
                     </div>
-                  </form>
+                  <HCaptchaWidget key={captchaAttempt} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+</form>
                 )}
               </motion.div>
             )}

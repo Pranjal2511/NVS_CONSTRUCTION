@@ -62,11 +62,11 @@ Message: ${message}`;
     }
   }
 
-  res.status(201).json({ message: 'Enquiry submitted successfully.', enquiry });
+  res.status(201).json({ success: true, message: 'Enquiry submitted successfully.', data: { enquiry }, enquiry });
 });
 
 export const createContact = asyncHandler(async (req, res) => {
-  const data = req.body;
+  const data = Object.fromEntries(['name', 'phone', 'email', 'service', 'message', 'blueprintTitle', 'budget', 'plotSize', 'constructionArea', 'location', 'projectType'].filter(key => req.body[key] !== undefined).map(key => [key, req.body[key]]));
   const enquiry = await Enquiry.create({
     ...data,
     status: 'New',
@@ -113,7 +113,7 @@ export const updateEnquiryStatus = asyncHandler(async (req, res) => {
   const enquiry = await Enquiry.findByIdAndUpdate(
     req.params.id,
     { status: req.body.status },
-    { new: true }
+    { new: true, runValidators: true }
   );
   if (!enquiry) throw new ApiError(404, 'Enquiry not found');
 

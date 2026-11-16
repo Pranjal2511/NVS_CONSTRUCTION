@@ -14,6 +14,8 @@ export const createAppointmentValidator = [
     const date = req.body.date || req.body.preferredDate;
     const time = req.body.time || req.body.preferredTime;
     if (!date || !time) throw new Error('Preferred date and time are required');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error('Valid calendar date required');
+    if (!/^(?:0?[1-9]|1[0-2]):[0-5]\d (?:AM|PM)$/.test(time) && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Valid appointment time required');
     return true;
   }),
 ];

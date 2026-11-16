@@ -7,17 +7,18 @@ import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  verifyAccessToken,
   getTokenPayload,
 } from '../utils/jwt.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
-import { isEmailTransportConfigured, sendLoginOtpEmail, sendPasswordResetEmail } from './emailService.js';
+import { sendLoginOtpEmail, sendPasswordResetEmail } from './emailService.js';
 import { sendLoginOtpPhone } from './phoneOtpService.js';
 import logger from '../utils/logger.js';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.IS_PRODUCTION,
-  sameSite: env.IS_PRODUCTION ? 'strict' : 'lax',
+  sameSite: process.env.COOKIE_SAME_SITE === 'none' && env.IS_PRODUCTION ? 'none' : 'lax',
   path: '/',
 };
 
@@ -30,8 +31,8 @@ if (!env.IS_PRODUCTION) {
 }
 
 export const setAuthCookies = (res, accessToken, refreshToken) => {
-  res.cookie('accessToken', accessToken, { ...COOKIE_OPTIONS, maxAge: 15 * 60 * 1000 });
-  res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('accessToken', accessToken, { ...COOKIE_OPTIONS, maxAge: Math.max(0, verifyAccessToken(accessToken).exp * 1000 - Date.now()) });
+  res.cookie('refreshToken', refreshToken, { ...COOKIE_OPTIONS, maxAge: Math.max(0, verifyRefreshToken(refreshToken).exp * 1000 - Date.now()) });
 };
 
 export const clearAuthCookies = (res) => {
@@ -60,9 +61,8 @@ const issueTokens = async (user) => {
   const payload = getTokenPayload(user);
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
-  user.refreshToken = refreshToken;
+  user.refreshToken = hashOtp(refreshToken);
   user.lastLogin = new Date();
-  user.isVerified = true;
   await user.save();
   return { accessToken, refreshToken, user };
 };
@@ -82,7 +82,11 @@ const findUserByIdentifier = (identifier) => {
 export const registerUser = async ({ name, firstName, lastName, email, phone, password, profileImage }) => {
   const normalizedEmail = normalizeIdentifier(email);
   const existing = await User.findOne({ email: normalizedEmail });
-  if (existing) throw new ApiError(400, 'User with this email already exists');
+  if (existing) {
+    if (existing.isVerified || existing.role !== 'user') throw new ApiError(409, 'User with this email already exists');
+    // Resend without replacing the existing account's identity or password.
+    return sendLoginOtp(normalizedEmail, 'user');
+  }
 
   const resolvedName = name || `${firstName || ''} ${lastName || ''}`.trim();
   const hashed = password ? await hashPassword(password) : undefined;
@@ -100,7 +104,7 @@ export const registerUser = async ({ name, firstName, lastName, email, phone, pa
 
   // Send real verification OTP to email
   try {
-    const otpResult = await sendLoginOtp(normalizedEmail, 'user');
+    await sendLoginOtp(normalizedEmail, 'user');
     logger.info('User registered and verification OTP sent', { email: user.email });
     return {
       user,
@@ -111,10 +115,9 @@ export const registerUser = async ({ name, firstName, lastName, email, phone, pa
       expiresInSeconds: 300,
     };
   } catch (otpErr) {
-    // If sending verification OTP fails, roll back the newly created user so they can try again once email is fixed
-    await User.findByIdAndDelete(user._id);
-    logger.error('Failed to send registration OTP email', { email: normalizedEmail, error: otpErr.message });
-    throw new ApiError(500, `Registration failed: Could not deliver verification email to ${normalizedEmail}. ${otpErr.message}`);
+    logger.error('Registration verification delivery failed; pending account retained');
+    if (otpErr.statusCode === 429) throw otpErr;
+    throw new ApiError(503, 'Account pending verification. Email delivery is temporarily unavailable. Retry registration or request another OTP.');
   }
 };
 
@@ -160,6 +163,8 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
   const channel = getOtpChannel(normalized);
   const user = await findUserByIdentifier(normalized);
 
+  if (channel === 'phone' && !user?.phoneVerified) throw new ApiError(403, 'Use email login until phone ownership has been verified');
+
   if (!user || user.role !== expectedRole) {
     logger.warn('OTP requested for invalid account', { identifier: normalized, role: expectedRole });
     throw new ApiError(401, 'No matching account found for this login type. Please check your email or register a new account.');
@@ -170,7 +175,7 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
   if (user.isLocked()) throw new ApiError(423, 'Account temporarily locked. Try again later.');
 
   const existingOtp = await Otp.findOne({ identifier: normalized, role: expectedRole }).select('+otpHash');
-  if (existingOtp) {
+  if (existingOtp && existingOtp.expiresAt > new Date()) {
     const secondsSinceLastSend = (Date.now() - existingOtp.lastSentAt.getTime()) / 1000;
     if (secondsSinceLastSend < 60) {
       const waitSec = Math.ceil(60 - secondsSinceLastSend);
@@ -190,11 +195,11 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
       role: expectedRole,
       otpHash: hashOtp(otp),
       attempts: 0,
-      resendCount: existingOtp ? existingOtp.resendCount + 1 : 0,
+      resendCount: existingOtp && existingOtp.expiresAt > new Date() ? existingOtp.resendCount + 1 : 0,
       lastSentAt: new Date(),
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     },
-    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
   );
 
   // Deliver real OTP via email or phone
@@ -206,9 +211,9 @@ export const sendLoginOtp = async (identifier, expectedRole = 'user') => {
     }
   } catch (sendErr) {
     // Invalidate the unreached OTP from DB so user isn't stuck with unreachable code
-    await Otp.deleteMany({ identifier: normalized, role: expectedRole });
-    logger.error('Failed to deliver OTP', { identifier: normalized, error: sendErr.message });
-    throw new ApiError(500, `Failed to send OTP: ${sendErr.message}`);
+    await Otp.deleteMany({ identifier: normalized, role: expectedRole, otpHash: hashOtp(otp) });
+    logger.error('Failed to deliver OTP');
+    throw new ApiError(503, 'Verification delivery temporarily unavailable. Please request another OTP shortly.');
   }
 
   logger.info('OTP successfully sent', { identifier: normalized, role: expectedRole, channel });
@@ -229,6 +234,8 @@ export const verifyLoginOtp = async (identifier, otp, expectedRole = 'user') => 
   if (!user || user.role !== expectedRole) throw new ApiError(401, 'Invalid or expired OTP');
   if (user.blocked) throw new ApiError(403, 'Your account has been blocked');
   if (user.isActive === false) throw new ApiError(403, 'Your account is inactive');
+  if (user.isLocked()) throw new ApiError(423, 'Account temporarily locked. Try again later.');
+  if (getOtpChannel(normalized) === 'phone' && (!user.isVerified || !user.phoneVerified)) throw new ApiError(403, 'Verify email and phone ownership before using phone login');
 
   const otpRecord = await Otp.findOne({ identifier: normalized, role: expectedRole }).select('+otpHash');
   if (!otpRecord || otpRecord.expiresAt < new Date()) {
@@ -243,14 +250,15 @@ export const verifyLoginOtp = async (identifier, otp, expectedRole = 'user') => 
   }
 
   if (otpRecord.otpHash !== hashOtp(String(otp))) {
-    otpRecord.attempts += 1;
-    await otpRecord.save();
+    await Otp.updateOne({ _id: otpRecord._id, otpHash: otpRecord.otpHash }, { $inc: { attempts: 1 } });
     await handleFailedLogin(user);
     throw new ApiError(401, 'Invalid OTP');
   }
 
   await resetLoginAttempts(user);
-  await Otp.deleteMany({ identifier: normalized, role: expectedRole });
+  const consumed = await Otp.findOneAndDelete({ _id: otpRecord._id, otpHash: hashOtp(String(otp)), attempts: { $lt: 5 }, expiresAt: { $gt: new Date() } });
+  if (!consumed) throw new ApiError(401, 'Invalid or expired OTP');
+  user.isVerified = true;
   const tokens = await issueTokens(user);
   logger.info('User logged in with OTP', { email: user.email, role: user.role });
   return tokens;
@@ -267,29 +275,29 @@ export const refreshAccessToken = async (refreshToken) => {
   }
 
   const user = await User.findById(decoded.id).select('+refreshToken');
-  if (!user || user.refreshToken !== refreshToken) {
+  if (!user || user.refreshToken !== hashOtp(refreshToken) || user.blocked || user.isActive === false || !user.isVerified) {
     throw new ApiError(403, 'Invalid refresh token');
   }
 
   const payload = getTokenPayload(user);
   const accessToken = generateAccessToken(payload);
   const newRefreshToken = generateRefreshToken(payload);
-  user.refreshToken = newRefreshToken;
-  await user.save();
+  const rotated = await User.findOneAndUpdate({ _id: user._id, refreshToken: hashOtp(refreshToken) }, { refreshToken: hashOtp(newRefreshToken) }, { new: true });
+  if (!rotated) throw new ApiError(403, 'Refresh token already used');
 
   return { accessToken, refreshToken: newRefreshToken, user };
 };
 
 export const logoutUser = async (userId, res) => {
   if (userId) {
-    await User.findByIdAndUpdate(userId, { refreshToken: null });
+    await User.findByIdAndUpdate(userId, { $set: { refreshToken: null }, $inc: { sessionVersion: 1 } });
   }
   clearAuthCookies(res);
 };
 
 export const signOutAllDevices = async (userId, res) => {
   if (userId) {
-    await User.findByIdAndUpdate(userId, { refreshToken: null });
+    await User.findByIdAndUpdate(userId, { $set: { refreshToken: null }, $inc: { sessionVersion: 1 } });
     logger.info('All sessions signed out', { userId });
   }
   clearAuthCookies(res);
@@ -308,14 +316,8 @@ export const forgotPassword = async (email) => {
   try {
     await sendPasswordResetEmail(user, resetLink);
   } catch (sendErr) {
-    if (env.IS_PRODUCTION) {
-      throw sendErr;
-    }
-    logger.warn('Password reset email delivery failed in dev mode', {
-      email,
-      error: sendErr.message,
-      resetLink,
-    });
+    logger.warn('Password reset email delivery failed');
+    throw new ApiError(503, 'Password reset delivery unavailable. Please try again shortly.');
   }
 
   logger.info('Password reset requested', { email });
@@ -335,6 +337,7 @@ export const resetPassword = async (token, newPassword) => {
   user.resetToken = undefined;
   user.resetTokenExpiry = undefined;
   user.refreshToken = undefined;
+  user.sessionVersion = (user.sessionVersion || 0) + 1;
   await user.save();
 
   logger.info('Password reset completed', { email: user.email });
@@ -342,8 +345,6 @@ export const resetPassword = async (token, newPassword) => {
 };
 
 export const formatAuthResponse = (tokens) => ({
-  token: tokens.accessToken,
-  accessToken: tokens.accessToken,
   user: {
     id: tokens.user.id || tokens.user._id?.toString(),
     name: tokens.user.name,

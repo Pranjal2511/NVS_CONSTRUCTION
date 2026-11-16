@@ -1,3 +1,4 @@
+import { duplicateSubmission } from '../middleware/duplicateSubmission.js';
 import { Router } from 'express';
 import * as enquiryController from '../controllers/enquiryController.js';
 import { validate } from '../middleware/validate.js';
@@ -8,8 +9,8 @@ import { verifyCaptcha } from '../middleware/captcha.js';
 
 const router = Router();
 
-router.post('/', submissionLimiter, verifyCaptcha, optionalAuth, createEnquiryValidator, validate, enquiryController.createEnquiry);
-router.post('/contact', submissionLimiter, verifyCaptcha, optionalAuth, createEnquiryValidator, validate, enquiryController.createContact);
+router.post('/', submissionLimiter, verifyCaptcha, optionalAuth, createEnquiryValidator, validate, duplicateSubmission, enquiryController.createEnquiry);
+router.post('/contact', submissionLimiter, verifyCaptcha, optionalAuth, createEnquiryValidator, validate, duplicateSubmission, enquiryController.createContact);
 router.get('/', adminOnly, enquiryController.getAllEnquiries);
 router.get('/mine', authenticate, enquiryController.getUserEnquiries);
 router.patch('/:id', adminOnly, updateEnquiryStatusValidator, validate, enquiryController.updateEnquiryStatus);
